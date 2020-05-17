@@ -31,27 +31,27 @@ Returns:
   '''
   Command line options
   '''
-  parser.add_argument(
-    '--model_path', type=str,
-    help='path to model weight file, default ' + ScoringService.get_defaults("model_path")
-  )
+  #parser.add_argument(
+  #  '--model_path', type=str,
+  #  help='path to model weight file, default ' + ScoringService.get_defaults("model_path")
+  #)
 
-  parser.add_argument(
-    '--anchors_path', type=str,
-    help='path to anchor definitions, default ' + ScoringService.get_defaults("anchors_path")
-  )
+  #parser.add_argument(
+  #  '--anchors_path', type=str,
+  #  help='path to anchor definitions, default ' + ScoringService.get_defaults("anchors_path")
+  #)
 
-  parser.add_argument(
-    '--classes_path', type=str,
-    help='path to class definitions, default ' + ScoringService.get_defaults("classes_path")
-  )
+  #parser.add_argument(
+  #  '--classes_path', type=str,
+  #  help='path to class definitions, default ' + ScoringService.get_defaults("classes_path")
+  #)
 
-  parser.add_argument(
-    '--gpu_num', type=int,
-    help='Number of GPU to use, default ' + str(ScoringService.get_defaults("gpu_num"))
-  )
+  #parser.add_argument(
+  #  '--gpu_num', type=int,
+  #  help='Number of GPU to use, default ' + str(ScoringService.get_defaults("gpu_num"))
+  #)
 
-  FLAGS = parser.parse_args()
+  #FLAGS = parser.parse_args()
   data_path = 'data'#読みこむデータのパスを記載
 
   #複数のファイルに対応済み
@@ -60,7 +60,9 @@ Returns:
   
   for i in range(len(videos)):
     video_path = videos[i]
-    Output = ScoringService.predict(ScoringService(**vars(FLAGS)), video_path)
+    ScoringService.get_model()
+    #Output = ScoringService.predict(ScoringService(**vars(FLAGS)), video_path)
+    Output = ScoringService.predict(video_path)
     print(Output)
     
     if i == 0:#最初はキーを指定して辞書作成

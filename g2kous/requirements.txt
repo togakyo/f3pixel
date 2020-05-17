@@ -1,0 +1,24 @@
+#・作成したモデル一式：
+#　- [g2kous]          >>>投稿用一式
+#
+#  　- [src]              >>>Python のプログラムを置くディレクトリ
+#      main.py               >>>想定する本体　
+#      predictor.py          >>>最初のプログラムが呼び出すファイル
+#    　 - [yolo3]                >>>YOLOv3
+#      　  _init_.py
+#      　  model.py
+#      　  utils.py
+#    　 - [data]                 >>>想定するインプットデータ
+#      　  test_00.mp4
+#      　  test_01.mp4
+#      　  …
+#
+#　　- [model]　　　　　　　　>>>学習済モデルを置くディレクトリ
+#      - [10class]                      >>>10クラスのオブジェクトを検出
+#         tinyYOLOv3_cl10_val_loss21.h5     >>>tiny YOLOv3
+#         voc_10classes.txt             
+#         2020_yolo_cl10_anchors.txt    
+#
+#　　- [output]                          >>>想定する出力先
+
+  

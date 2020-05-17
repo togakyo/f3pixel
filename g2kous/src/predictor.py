@@ -15,94 +15,89 @@ from PIL import Image, ImageFont, ImageDraw
 
 from yolo3.model import yolo_eval, yolo_body, tiny_yolo_body
 from yolo3.utils import letterbox_image
-from tensorflow.keras.utils import multi_gpu_model
+#from tensorflow.keras.utils import multi_gpu_model
 
 
 class ScoringService(object):
-    _defaults = {
-        "model_path": '../model/10class/tinyYOLOv3_cl10_val_loss21.h5',
-        "anchors_path": '../model/10class/2020_yolo_cl10_anchors.txt',
-        "classes_path": '../model/10class/voc_10classes.txt',
-        "score": 0.3,
-        "iou": 0.5,
-        "model_image_size": (416, 416),
-        "gpu_num": 1,
-    }
-    #model_path, anchors_path, classes_pathを変更すれば、１０クラス検出版と２クラス検出版に切替可
-    
     @classmethod
-    def get_defaults(cls, n):
-      if n in cls._defaults:
-          return cls._defaults[n]
-      else:
-          return "Unrecognized attribute name '" + n + "'"
-    
-    def __init__(self, **kwargs):
-      self.__dict__.update(self._defaults)  # set up default values
-      # self.__dict__.update(kwargs)  # and update with user overrides
-      self.class_names = self._get_class()
-      self.anchors = self._get_anchors()
-      self.load_yolo_model()
-
-    def _get_class(self):
-      classes_path = os.path.expanduser(self.classes_path)
+    def _get_class(cls, model_path='../model/10class'):
+      #classes_path = os.path.expanduser(self.classes_path)
+      classes_path = os.path.join(model_path, 'voc_10classes.txt')
       print(classes_path)
       with open(classes_path) as f:
           class_names = f.readlines()
       class_names = [c.strip() for c in class_names]
       return class_names
-
-    def _get_anchors(self):
-      anchors_path = os.path.expanduser(self.anchors_path)
+    
+    @classmethod
+    def _get_anchors(cls, model_path='../model/10class'):
+      #anchors_path = os.path.expanduser(self.anchors_path)
+      anchors_path = os.path.join(model_path, '2020_yolo_cl10_anchors.txt')
       with open(anchors_path) as f:
           anchors = f.readline()
       anchors = [float(x) for x in anchors.split(',')]
       return np.array(anchors).reshape(-1, 2)
 
-    def load_yolo_model(self):
-      model_path = os.path.expanduser(self.model_path)
-      assert model_path.endswith('.h5'), 'Keras model or weights must be a .h5 file.'
+    @classmethod
+    def get_model(cls, model_path='../model/10class'):
+      #load_yolo_model
+      #model_path is dummy
+      #modelpath = os.path.expanduser(modelpath)
+      modelpath = os.path.join(model_path, 'tinyYOLOv3_cl10_val_loss21.h5')
+      #assert model_path.endswith('.h5'), 'Keras model or weights must be a .h5 file.'
+
+      class_names = cls._get_class()
+      anchors = cls._get_anchors()
 
       # Load model, or construct model and load weights.
-      num_anchors = len(self.anchors)
-      num_classes = len(self.class_names)
+      num_anchors = len(anchors)
+      num_classes = len(class_names)
       is_tiny_version = num_anchors == 6  # default setting
       try:
           #self.yolo_model = load_model(model_path, compile=False)
-          self.yolo_model = tiny_yolo_body(Input(shape=(None, None, 3)), num_anchors // 2, num_classes) \
+          cls.yolo_model = tiny_yolo_body(Input(shape=(None, None, 3)), num_anchors // 2, num_classes) \
               if is_tiny_version else yolo_body(Input(shape=(None, None, 3)), num_anchors // 3, num_classes)
-          self.yolo_model.load_weights(self.model_path)  # make sure model, anchors and classes match
+          cls.yolo_model.load_weights(modelpath)  # make sure model, anchors and classes match
           return True
       except:
           return False
             
       else:
-          assert self.yolo_model.layers[-1].output_shape[-1] == \
-                  num_anchors / len(self.yolo_model.output) * (num_classes + 5), \
+          assert cls.yolo_model.layers[-1].output_shape[-1] == \
+                  num_anchors / len(cls.yolo_model.output) * (num_classes + 5), \
                'Mismatch between model and given anchor and class sizes'
 
       print('{} model, anchors, and classes loaded.'.format(model_path))
 
-
-    def compute_output(self, image_data, image_shape):
+    @classmethod
+    def compute_output(cls, image_data, image_shape):
       # Generate output tensor targets for filtered bounding boxes.
       # self.input_image_shape = K.placeholder(shape=(2,))
-      self.input_image_shape = tf.constant(image_shape)
-      if self.gpu_num >= 2:
-        self.yolo_model = multi_gpu_model(self.yolo_model, gpus=self.gpu_num)
+      input_image_shape = tf.constant(image_shape)
+      #if self.gpu_num >= 2:
+      #  self.yolo_model = multi_gpu_model(self.yolo_model, gpus=self.gpu_num)
 
-      boxes, scores, classes = yolo_eval(self.yolo_model(image_data), self.anchors,
-                                           len(self.class_names), self.input_image_shape,
-                                           score_threshold=self.score, iou_threshold=self.iou)
+      class_names = cls._get_class()
+      anchors = cls._get_anchors()
+      iou = 0.5    #Adjust param
+      score = 0.3  #Adjust param
+      
+      boxes, scores, classes = yolo_eval(cls.yolo_model(image_data), anchors,
+                                           len(class_names), input_image_shape,
+                                           score_threshold=score, iou_threshold=iou)
       return boxes, scores, classes
-
-    def detect_image(self, image):
+    
+    @classmethod
+    def detect_image(cls, image):
       start = timer()
+      
+      model_image_size = (416, 416)
+      class_names = cls._get_class()
 
-      if self.model_image_size != (None, None):
-          assert self.model_image_size[0] % 32 == 0, 'Multiples of 32 required'
-          assert self.model_image_size[1] % 32 == 0, 'Multiples of 32 required'
-          boxed_image = letterbox_image(image, tuple(reversed(self.model_image_size)))
+      if model_image_size != (None, None):
+          assert model_image_size[0] % 32 == 0, 'Multiples of 32 required'
+          assert model_image_size[1] % 32 == 0, 'Multiples of 32 required'
+          boxed_image = letterbox_image(image, tuple(reversed(model_image_size)))
       else:
           new_image_size = (image.width - (image.width % 32),
                               image.height - (image.height % 32))
@@ -111,8 +106,10 @@ class ScoringService(object):
 
       image_data /= 255.
       image_data = np.expand_dims(image_data, 0)  # Add batch dimension.
+      
+      image_shape = [image.size[1], image.size[0]]
 
-      out_boxes, out_scores, out_classes = self.compute_output(image_data, [image.size[1], image.size[0]])
+      out_boxes, out_scores, out_classes = cls.compute_output(image_data, image_shape)
 
       print('Found {} boxes for {}'.format(len(out_boxes), 'img'))
 
@@ -120,7 +117,7 @@ class ScoringService(object):
       Pedestrian_result_ALL = []
       all_result = []
       for i, c in reversed(list(enumerate(out_classes))):
-          predicted_class = self.class_names[c]
+          predicted_class = class_names[c]
           box = out_boxes[i]
           score = out_scores[i]
             
@@ -168,8 +165,9 @@ class ScoringService(object):
       end = timer()
       print("1フレームの処理時間 = ", end - start)
       return all_result
-
-    def predict(self, input):
+    
+    @classmethod
+    def predict(cls, input):
       predictions = []
       cap = cv2.VideoCapture(input)
       fname = os.path.basename(input)
@@ -180,7 +178,7 @@ class ScoringService(object):
           break
             
         image = Image.fromarray(frame)
-        prediction = self.detect_image(image)
+        prediction = cls.detect_image(image)
 
         predictions.append(prediction)
       cap.release()
