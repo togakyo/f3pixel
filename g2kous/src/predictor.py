@@ -4,7 +4,7 @@ import cv2
 import pickle
 
 # add by togakyo
-import colorsys
+#import colorsys
 from timeit import default_timer as timer
 
 import numpy as np
@@ -19,8 +19,10 @@ from yolo3.utils import letterbox_image
 
 
 class ScoringService(object):
+    IDvalue = 0                 # クラス変数を宣言 = 0
+      
     @classmethod
-    def _get_class(cls, model_path='../model/10class'):
+    def _get_class(cls, model_path='../model'):
       #classes_path = os.path.expanduser(self.classes_path)
       classes_path = os.path.join(model_path, 'voc_10classes.txt')
       print(classes_path)
@@ -30,7 +32,7 @@ class ScoringService(object):
       return class_names
     
     @classmethod
-    def _get_anchors(cls, model_path='../model/10class'):
+    def _get_anchors(cls, model_path='../model'):
       #anchors_path = os.path.expanduser(self.anchors_path)
       anchors_path = os.path.join(model_path, '2020_yolo_cl10_anchors.txt')
       with open(anchors_path) as f:
@@ -39,7 +41,7 @@ class ScoringService(object):
       return np.array(anchors).reshape(-1, 2)
 
     @classmethod
-    def get_model(cls, model_path='../model/10class'):
+    def get_model(cls, model_path='../model'):
       #load_yolo_model
       #model_path is dummy
       #modelpath = os.path.expanduser(modelpath)
@@ -62,12 +64,12 @@ class ScoringService(object):
       except:
           return False
             
-      else:
-          assert cls.yolo_model.layers[-1].output_shape[-1] == \
-                  num_anchors / len(cls.yolo_model.output) * (num_classes + 5), \
-               'Mismatch between model and given anchor and class sizes'
+      #else:
+      #    assert cls.yolo_model.layers[-1].output_shape[-1] == \
+      #            num_anchors / len(cls.yolo_model.output) * (num_classes + 5), \
+      #         'Mismatch between model and given anchor and class sizes'
 
-      print('{} model, anchors, and classes loaded.'.format(model_path))
+      #print('{} model, anchors, and classes loaded.'.format(model_path))
 
     @classmethod
     def compute_output(cls, image_data, image_shape):
@@ -116,6 +118,7 @@ class ScoringService(object):
       Car_result_ALL = []
       Pedestrian_result_ALL = []
       all_result = []
+
       for i, c in reversed(list(enumerate(out_classes))):
           predicted_class = class_names[c]
           box = out_boxes[i]
@@ -150,12 +153,14 @@ class ScoringService(object):
               Pedestrian_result = {'id': int(0), 'box2d': [int(0),int(0),int(0),int(0)]}
 
               if predicted_class == 'Car':
+                  cls.IDvalue = cls.IDvalue + 1
                   #車を検出した時
-                  Car_result = {'id': int(0), 'box2d': [left,top,right,bottom]}#予測結果
+                  Car_result = {'id': int(cls.IDvalue), 'box2d': [left,top,right,bottom]}#予測結果
                   
               elif predicted_class == 'Pedestrian':
+                  cls.IDvalue = cls.IDvalue + 1
                   #歩行者を検出した時
-                  Pedestrian_result = {'id': int(0), 'box2d': [left,top,right,bottom]}#予測結果
+                  Pedestrian_result = {'id': int(cls.IDvalue), 'box2d': [left,top,right,bottom]}#予測結果
               
               #検出したオブジェクトを格納 検出しない場合は初期値０が格納される
               Car_result_ALL.append(Car_result)#車
