@@ -11,6 +11,7 @@ from PIL import Image, ImageFont, ImageDraw
 
 from model import yolo_eval, yolo_body, tiny_yolo_body
 from utils import letterbox_image
+from timeit import default_timer as timer
 
 class ScoringService(object):
     IDvalue = 0 # クラス変数を宣言 = 0
@@ -38,15 +39,22 @@ class ScoringService(object):
         cap = cv2.VideoCapture(input)
         fname = os.path.basename(input)
 
-        while True:
-          ret, frame = cap.read()
-          if not ret:
-            break
-            
-          image = Image.fromarray(frame)
-          prediction = cls.detect_image(image)
+        Nm_fr = 0
 
-          predictions.append(prediction)
+        while True:
+            Nm_fr = Nm_fr + 1
+
+            ret, frame = cap.read()
+            if not ret:
+                break
+
+            image = Image.fromarray(frame)
+            print(frame.shape)
+            print("PROCESSING FRAME = ", Nm_fr)
+            prediction = cls.detect_image(image)
+
+            predictions.append(prediction)
+
         cap.release()
         return {fname: predictions}
 
@@ -84,7 +92,7 @@ class ScoringService(object):
     
     @classmethod
     def detect_image(cls, image):
-        #start = timer()
+        start = timer()
       
         model_image_size = (416, 416)
         class_names = cls._get_class()
@@ -132,8 +140,8 @@ class ScoringService(object):
 
             if sq_bdbox >= 1024:#矩形サイズの閾値
                 #検出しない時の初期値
-                Car_result = {'id': int(0), 'box2d': [int(0),int(0),int(image.size[1]),int(image.size[0]])]}
-                Pedestrian_result = {'id': int(0), 'box2d': [int(0),int(0),int(image.size[1]),int(image.size[0]])]}
+                Car_result = {'id': int(0), 'box2d': [int(0),int(0),int(image.height),int(image.width)]}
+                Pedestrian_result = {'id': int(0), 'box2d': [int(0),int(0),int(image.height),int(image.width)]}
 
                 if predicted_class == 'Car':
                     cls.IDvalue = cls.IDvalue + 1
@@ -154,7 +162,7 @@ class ScoringService(object):
                     Pedestrian_result_ALL.append(Pedestrian_result)#歩行者
         
         all_result = {'Car': Car_result_ALL, 'Pedestrian': Pedestrian_result_ALL}
-        #end = timer()
-        #print("1フレームの処理時間 = ", end - start)
+        end = timer()
+        print("1フレームの処理時間 = ", end - start)
         return all_result
     
