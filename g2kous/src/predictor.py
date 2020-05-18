@@ -189,7 +189,7 @@ class ScoringService(object):
                 if predicted_class == 'Car':
                     cls.IDvalue = cls.IDvalue + 1
                     #車を検出した時
-                    Car_result = {'id': int(cls.IDvalue), 'box2d': [left,top,right,bottom]}#予測結果
+                    Car_result = {'id': int(1), 'box2d': [left,top,right,bottom]}#予測結果
 
                     #検出したオブジェクトを格納 検出しない場合は初期値０が格納される
                     Car_result_ALL.append(Car_result)#車
@@ -198,7 +198,7 @@ class ScoringService(object):
                 elif predicted_class == 'Pedestrian':
                     cls.IDvalue = cls.IDvalue + 1
                     #歩行者を検出した時
-                    Pedestrian_result = {'id': int(cls.IDvalue), 'box2d': [left,top,right,bottom]}#予測結果
+                    Pedestrian_result = {'id': int(2), 'box2d': [left,top,right,bottom]}#予測結果
               
                     #検出したオブジェクトを格納 検出しない場合は初期値０が格納される
                     Car_result_ALL.append(Car_result)#車
