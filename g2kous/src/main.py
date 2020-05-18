@@ -35,7 +35,6 @@ Returns:
   Output_list = ''
   
   for i in range(len(videos)):
-    start_mp4 = timer()
     
     video_path = videos[i]
     ScoringService.get_model()
@@ -48,9 +47,11 @@ Returns:
         Output_list.update(Output)
 
     print("＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊")
-    end_mp4 = timer()
-    print("1mp4 file の処理時間 = ", end_mp4 - start_mp4)
 
+    # Output douga mp4
+    #ScoringService.get_model()
+    ScoringService.pw_outdouga(video_path)
+    
   with open('../output/prediction.json', 'w') as f:
     json.dump(Output_list, f)
 
