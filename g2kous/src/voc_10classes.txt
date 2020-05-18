@@ -1,0 +1,10 @@
+Car
+Bus
+Truck
+Svehicle
+Pedestrian
+Motorbike
+Bicycle
+Train
+Signal
+Signs
