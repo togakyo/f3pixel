@@ -182,26 +182,19 @@ class ScoringService(object):
             sq_bdbox = (bottom - top)*(right - left) 
 
             if sq_bdbox >= 1024:#矩形サイズの閾値
-                #検出しない時の初期値
-                Car_result = {'id': int(0), 'box2d': [int(0),int(0),int(image.height),int(image.width)]}
-                Pedestrian_result = {'id': int(0), 'box2d': [int(0),int(0),int(image.height),int(image.width)]}
-
+                
                 if predicted_class == 'Car':
                     cls.IDvalue = cls.IDvalue + 1
                     #車を検出した時
                     Car_result = {'id': int(1), 'box2d': [left,top,right,bottom]}#予測結果
-
                     #検出したオブジェクトを格納 検出しない場合は初期値０が格納される
                     Car_result_ALL.append(Car_result)#車
-                    Pedestrian_result_ALL.append(Pedestrian_result)#歩行者
                   
                 elif predicted_class == 'Pedestrian':
                     cls.IDvalue = cls.IDvalue + 1
                     #歩行者を検出した時
-                    Pedestrian_result = {'id': int(2), 'box2d': [left,top,right,bottom]}#予測結果
-              
+                    Pedestrian_result = {'id': int(2), 'box2d': [left,top,right,bottom]}#予測結果              
                     #検出したオブジェクトを格納 検出しない場合は初期値０が格納される
-                    Car_result_ALL.append(Car_result)#車
                     Pedestrian_result_ALL.append(Pedestrian_result)#歩行者
         
         all_result = {'Car': Car_result_ALL, 'Pedestrian': Pedestrian_result_ALL}
@@ -250,8 +243,7 @@ class ScoringService(object):
             box = out_boxes[i]
             score = out_scores[i]
             
-            #label = '{} {:.2f}'.format(predicted_class, score)
-            label = '{} {}'.format(predicted_class, str(cls.IDvalue))#put the ID for each obj
+            label = '{}_{:.2f}_{}'.format(predicted_class, score, str(cls.IDvalue))#put the ID for each obj
             draw = ImageDraw.Draw(image)
             label_size = draw.textsize(label, font)
 
@@ -271,17 +263,6 @@ class ScoringService(object):
                 text_origin = np.array([left, top - label_size[1]])
             else:
                 text_origin = np.array([left, top + 1])
-
-            # My kingdom for a good redistributable image drawing library.
-            for i in range(thickness):
-                draw.rectangle(
-                    [left + i, top + i, right - i, bottom - i],
-                    outline=colors[c])
-            draw.rectangle(
-                [tuple(text_origin), tuple(text_origin + label_size)],
-                fill=colors[c])
-            draw.text(text_origin, label, fill=(0, 0, 0), font=font)
-            del draw
          
             #1 予測結果より次のFrameの物体位置を予測
             #nxt_result_txt = ' {},{},{},{},{}'.format(left, top, right, bottom, c)
@@ -290,29 +271,14 @@ class ScoringService(object):
             sq_bdbox = (bottom - top)*(right - left) 
 
             if sq_bdbox >= 1024:#矩形サイズの閾値
-                #検出しない時の初期値
-                Car_result = {'id': int(0), 'box2d': [int(0),int(0),int(image.height),int(image.width)]}
-                Pedestrian_result = {'id': int(0), 'box2d': [int(0),int(0),int(image.height),int(image.width)]}
-
-                if predicted_class == 'Car':
-                    cls.IDvalue = cls.IDvalue + 1
-                    #車を検出した時
-                    Car_result = {'id': int(cls.IDvalue), 'box2d': [left,top,right,bottom]}#予測結果
-
-                    #検出したオブジェクトを格納 検出しない場合は初期値０が格納される
-                    Car_result_ALL.append(Car_result)#車
-                    Pedestrian_result_ALL.append(Pedestrian_result)#歩行者
-                  
-                elif predicted_class == 'Pedestrian':
-                    cls.IDvalue = cls.IDvalue + 1
-                    #歩行者を検出した時
-                    Pedestrian_result = {'id': int(cls.IDvalue), 'box2d': [left,top,right,bottom]}#予測結果
-              
-                    #検出したオブジェクトを格納 検出しない場合は初期値０が格納される
-                    Car_result_ALL.append(Car_result)#車
-                    Pedestrian_result_ALL.append(Pedestrian_result)#歩行者
+                if predicted_class == 'Car'or predicted_class == 'Pedestrian':# Car or Pedes
+                    # My kingdom for a good redistributable image drawing library.
+                    for i in range(thickness):
+                        draw.rectangle([left + i, top + i, right - i, bottom - i], outline=colors[c])
+                    draw.rectangle([tuple(text_origin), tuple(text_origin + label_size)], fill=colors[c])
+                    draw.text(text_origin, label, fill=(0, 0, 0), font=font)
+                    del draw
         
-        all_result = {'Car': Car_result_ALL, 'Pedestrian': Pedestrian_result_ALL}
         end = timer()
         print("1フレームの処理時間 = ", end - start)
         return image
