@@ -21,6 +21,8 @@ class ScoringService(object):
 
     @classmethod
     def get_model(cls, model_path='../model'):
+        cls.IDvalue = 0 # Reset Object ID
+
         modelpath = os.path.join(model_path, 'tinyYOLOv3_cl10_val_loss21.h5')
 
         class_names = cls._get_class()
@@ -182,19 +184,26 @@ class ScoringService(object):
             sq_bdbox = (bottom - top)*(right - left) 
 
             if sq_bdbox >= 1024:#矩形サイズの閾値
-                
+                #検出しない時の初期値
+                #Car_result = {'id': int(0), 'box2d': [int(0),int(0),int(image.height),int(image.width)]}
+                #Pedestrian_result = {'id': int(0), 'box2d': [int(0),int(0),int(image.height),int(image.width)]}
+
                 if predicted_class == 'Car':
                     cls.IDvalue = cls.IDvalue + 1
                     #車を検出した時
-                    Car_result = {'id': int(1), 'box2d': [left,top,right,bottom]}#予測結果
+                    Car_result = {'id': int(cls.IDvalue), 'box2d': [left,top,right,bottom]}#予測結果
+
                     #検出したオブジェクトを格納 検出しない場合は初期値０が格納される
                     Car_result_ALL.append(Car_result)#車
+                    #Pedestrian_result_ALL.append(Pedestrian_result)#歩行者
                   
                 elif predicted_class == 'Pedestrian':
                     cls.IDvalue = cls.IDvalue + 1
                     #歩行者を検出した時
-                    Pedestrian_result = {'id': int(2), 'box2d': [left,top,right,bottom]}#予測結果              
+                    Pedestrian_result = {'id': int(cls.IDvalue), 'box2d': [left,top,right,bottom]}#予測結果
+              
                     #検出したオブジェクトを格納 検出しない場合は初期値０が格納される
+                    #Car_result_ALL.append(Car_result)#車
                     Pedestrian_result_ALL.append(Pedestrian_result)#歩行者
         
         all_result = {'Car': Car_result_ALL, 'Pedestrian': Pedestrian_result_ALL}
