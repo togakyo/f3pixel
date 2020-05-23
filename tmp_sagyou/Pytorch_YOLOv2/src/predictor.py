@@ -6,7 +6,7 @@ import time
 import torch
 from torch.autograd import Variable
 from PIL import Image
-from test import prepare_im_data
+from preim_data import prepare_im_data
 from yolov2 import Yolov2
 from yolo_eval import yolo_eval
 from network import WeightLoader
@@ -15,10 +15,12 @@ import os
 
 class ScoringService(object):
     IDvalue = 0 # クラス変数を宣言 = 0
+    IDvalue_old = 0 # クラス変数を宣言 = 0
     
     @classmethod
     def get_model(cls, model_path='../model'):
         cls.IDvalue = 0 # Reset Object ID
+        cls.IDvalue_old = 0 # Reset Object ID
         
         cls.model = Yolov2(arch='vgg16')
 
@@ -31,8 +33,8 @@ class ScoringService(object):
         
         cls.model.load_state_dict(checkpoint['model'])
 
-        #use_cuda:
-        cls.model.cuda()
+        if torch.cuda.is_available():
+            cls.model.cuda()
 
         cls.model.eval()
         print('model loaded')
@@ -49,9 +51,14 @@ class ScoringService(object):
         fname = os.path.basename(input)
 
         Nm_fr = 0
+        Nm_fr1cnt = 0
+        Nm_fr3cnt = 0
+
+        mem_IDlist = []
 
         while True:
             Nm_fr = Nm_fr + 1
+            Nm_fr1cnt = Nm_fr1cnt + 1
 
             ret, frame = cap.read()
             if not ret:
@@ -61,7 +68,7 @@ class ScoringService(object):
             #im_data = prepare_im_data(frame)
             #im_info = {w:frame.shape[1], h:frame.shape[0]}
 
-            if True:
+            if torch.cuda.is_available():
                 im_data_variable = Variable(im_data).cuda()
             else:
                 im_data_variable = Variable(im_data)
@@ -71,17 +78,37 @@ class ScoringService(object):
             detections = yolo_eval(yolo_output, im_info, conf_threshold=0.2, nms_threshold=0.4)
             ##print(detections)
             
-            det_boxes = detections[:, :5].cpu().numpy()
-            det_classes = detections[:, -1].long().cpu().numpy()
+            npdetections = detections.to('cpu').detach().numpy().copy()
+            u4_detections = npdetections.astype(np.uint32)
+            det_boxes = u4_detections[:,:5]
+            det_classes = u4_detections[:,-1]
             
             num_boxes = det_boxes.shape[0]
             
             Car_result_ALL = []
             Pedestrian_result_ALL = []
             all_result = []
+
+            #*****************************************
+            if Nm_fr1cnt >= 1:
+                Nm_fr1cnt = 0
+                cls.IDvalue_old = cls.IDvalue # Latch
+                cls.IDvalue = 0 #Reset ID
+            
+            #Count 3 frame and reset counter and ID
+            if Nm_fr >= 3:
+                Nm_fr = 0
+                Nm_fr3cnt = Nm_fr3cnt + 1
+                
+                mem_IDlist.append(cls.IDvalue_old)
+                
+                cls.IDvalue = sum(mem_IDlist[0:Nm_fr3cnt]) # Update Object ID
+            #*****************************************
             
             for i in range(num_boxes):
-                bbox = tuple(np.round(det_boxes[i, :4]).astype(np.int64))
+                #bbox = tuple(np.round(det_boxes[i, :4]).astype(np.int64))
+                
+                bbox = np.round(det_boxes[i, :4]).astype(np.int64)
                 score = det_boxes[i, 4]
                 gt_class_ind = det_classes[i]
                 class_name = classes[gt_class_ind]
