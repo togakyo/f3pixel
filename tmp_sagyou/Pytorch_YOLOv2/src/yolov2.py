@@ -111,17 +111,17 @@ class Yolov2(nn.Module):
 
         return delta_pred, conf_pred, class_pred
 
-if __name__ == '__main__':
-    model = Yolov2(arch='vgg16')
+#if __name__ == '__main__':
+#    model = Yolov2(arch='vgg16')
     #1936 x 1216
     #im = np.random.randn(1, 3, 256, 256)
-    im = np.random.randn(1, 3, 1936, 1216)
-    im_variable = Variable(torch.from_numpy(im)).float()
-    out = model(im_variable)
-    delta_pred, conf_pred, class_pred = out
-    print('delta_pred size:', delta_pred.size())
-    print('conf_pred size:', conf_pred.size())
-    print('class_pred size:', class_pred.size())
+#    im = np.random.randn(1, 3, 1936, 1216)
+#    im_variable = Variable(torch.from_numpy(im)).float()
+#    out = model(im_variable)
+#    delta_pred, conf_pred, class_pred = out
+#    print('delta_pred size:', delta_pred.size())
+#    print('conf_pred size:', conf_pred.size())
+#    print('class_pred size:', class_pred.size())
 
 
 
