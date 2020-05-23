@@ -78,7 +78,7 @@ class ScoringService(object):
             detections = yolo_eval(yolo_output, im_info, conf_threshold=0.2, nms_threshold=0.4)
             ##print(detections)
             
-            npdetections = detections.numpy()
+            npdetections = np.array(detections)
             u4_detections = npdetections.astype(np.uint32)
             det_boxes = u4_detections[:,:5]
             det_classes = u4_detections[:,-1]
