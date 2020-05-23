@@ -26,15 +26,15 @@ class ScoringService(object):
 
         model_path = os.path.join(model_path, 'yolov2_epoch_42.pth')
         print('loading model from {}'.format(model_path))
-        if torch.cuda.is_available():
-            checkpoint = torch.load(model_path)
-        else:
-            checkpoint = torch.load(model_path, map_location='cpu')
+        #if torch.cuda.is_available():
+        checkpoint = torch.load(model_path)
+        #else:
+        #    checkpoint = torch.load(model_path, map_location='cpu')
         
         cls.model.load_state_dict(checkpoint['model'])
 
-        if torch.cuda.is_available():
-            cls.model.cuda()
+        #if torch.cuda.is_available():
+        cls.model.cuda()
 
         cls.model.eval()
         print('model loaded')
@@ -68,10 +68,10 @@ class ScoringService(object):
             #im_data = prepare_im_data(frame)
             #im_info = {w:frame.shape[1], h:frame.shape[0]}
 
-            if torch.cuda.is_available():
-                im_data_variable = Variable(im_data).cuda()
-            else:
-                im_data_variable = Variable(im_data)
+            #if torch.cuda.is_available():
+            im_data_variable = Variable(im_data).cuda()
+            #else:
+            #    im_data_variable = Variable(im_data)
 
             yolo_output = cls.model(im_data_variable)
             yolo_output = [item[0].data for item in yolo_output]
