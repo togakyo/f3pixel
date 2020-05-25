@@ -23,7 +23,7 @@ class ScoringService(object):
     def get_model(cls, model_path='../model'):
         cls.IDvalue = 0 # Reset Object ID
 
-        modelpath = os.path.join(model_path, 'tinyYOLOv3_cl10_val_loss21.h5')
+        modelpath = os.path.join(model_path, 'YOLOv3_cl10_val_loss67.h5')
 
         class_names = cls._get_class()
         anchors = cls._get_anchors()
@@ -114,7 +114,7 @@ class ScoringService(object):
 
     @classmethod
     def _get_anchors(cls, model_path='../src'):
-        anchors_path = os.path.join(model_path, '2020_yolo_cl10_anchors.txt')
+        anchors_path = os.path.join(model_path, '2020_yolo_anchors9_trainallimages.txt')
       
         with open(anchors_path) as f:
             anchors = f.readline()
@@ -128,7 +128,7 @@ class ScoringService(object):
         class_names = cls._get_class()
         anchors = cls._get_anchors()
         iou = 0.75    #Adjust param
-        score = 0.5  #Adjust param
+        score = 0.7   #Adjust param
       
         boxes, scores, classes = yolo_eval(cls.yolo_model(image_data), anchors,
                                              len(class_names), input_image_shape,
