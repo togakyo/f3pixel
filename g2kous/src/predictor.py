@@ -127,8 +127,8 @@ class ScoringService(object):
 
         class_names = cls._get_class()
         anchors = cls._get_anchors()
-        iou = 0.75    #Adjust param
-        score = 0.7   #Adjust param
+        iou = 0.2    #Adjust param
+        score = 0.8   #Adjust param
       
         boxes, scores, classes = yolo_eval(cls.yolo_model(image_data), anchors,
                                              len(class_names), input_image_shape,
