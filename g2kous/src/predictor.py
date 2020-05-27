@@ -18,10 +18,12 @@ import os
 
 class ScoringService(object):
     IDvalue = 0 # クラス変数を宣言 = 0
+    Mem_IDvalue = 0 # クラス変数を宣言 = 0
 
     @classmethod
     def get_model(cls, model_path='../model'):
         cls.IDvalue = 0 # Reset Object ID
+        cls.Mem_IDvalue = 0 # Reset Memory Object ID
 
         modelpath = os.path.join(model_path, 'YOLOv3_cl10_val_loss67.h5')
 
@@ -45,20 +47,30 @@ class ScoringService(object):
         fname = os.path.basename(input)
 
         Nm_fr = 0
+        Nm_3fr_limit = 0
 
         while True:
             Nm_fr = Nm_fr + 1
-
+            Nm_3fr_limit = Nm_3fr_limit + 1
+            
+            cls.IDvalue = cls.IDvalue + cls.Mem_IDvalue # Sum Memory Object ID
+            
             ret, frame = cap.read()
             if not ret:
                 break
+            
+            if Nm_3fr_limit > 3:
+                Nm_3fr_limit = 0
+
+                cls.Mem_IDvalue = cls.IDvalue # Memory Last Object ID
 
             image = Image.fromarray(frame)
             print(frame.shape)
             print("PROCESSING FRAME = ", Nm_fr)
             prediction = cls.detect_image(image)
-
             predictions.append(prediction)
+
+            cls.IDvalue = 0 # Reset Object ID/frame
 
         cap.release()
         return {fname: predictions}
