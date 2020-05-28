@@ -19,6 +19,13 @@ if __name__ == '__main__':
     
         cap = cv2.VideoCapture(video_path)
         fname = os.path.basename(video_path)
+        
+        video_FourCC = int(cap.get(cv2.CAP_PROP_FOURCC))
+        video_fps = cap.get(cv2.CAP_PROP_FPS)
+        video_size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+        
+        save_mp4path = 'out/result_{}.mp4'.format(fname)
+        out = cv2.VideoWriter(save_mp4path, video_FourCC, video_fps, video_size)
 
         while True:
             ret, frame = cap.read()
@@ -31,12 +38,17 @@ if __name__ == '__main__':
             #image = Image.fromarray(frame)
             #print(image.mode)
             # RGB
-            save_imgpath = 'out_frame/{}.jpg'.format(Number_frseries)
+            save_imgpath = 'out/{}.jpg'.format(Number_frseries)
             #save_imgpath = 'out_frame/{}.bmp'.format(Number_frseries)
-            #image.save(save_imgpath)
-            cv2.imwrite(save_imgpath, frame, [cv2.IMWRITE_JPEG_QUALITY, 100])
-            #cv2.imwrite(save_imgpath, frame)
             
+            yAxis = cv2.flip(frame, 1)
+            
+            #image.save(save_imgpath)
+            #cv2.imwrite(save_imgpath, frame, [cv2.IMWRITE_JPEG_QUALITY, 100])
+            #cv2.imwrite(save_imgpath, frame)
+            cv2.imwrite(save_imgpath, yAxis, [cv2.IMWRITE_JPEG_QUALITY, 100])
+            
+            out.write(yAxis)
             print("Save_OK Frame = ", save_imgpath)
         print("＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊")
 
