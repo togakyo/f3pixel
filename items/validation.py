@@ -7,12 +7,12 @@ import os
 
 if __name__ == '__main__':
     #FLAGS = parser.parse_args()
-    data_path = 'data'#読みこむデータのパスを記載
+    data_path = 'traindataset/train_videos'#読みこむデータのパスを記載
     videos = sorted(glob.glob(data_path+'/*.mp4'))
     print("ALL mp4 = ", videos)
     
     #フレームのファイル名を動画をまたいで連番で付与
-    Number_frseries = 0
+    Number_frseries = 15000
     
     for i in range(len(videos)):
         video_path = videos[i]
@@ -24,21 +24,21 @@ if __name__ == '__main__':
         video_fps = cap.get(cv2.CAP_PROP_FPS)
         video_size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
         
-        save_mp4path = 'out/result_{}.mp4'.format(fname)
+        save_mp4path = 'tmp_out/result_{}.mp4'.format(fname)
         out = cv2.VideoWriter(save_mp4path, video_FourCC, video_fps, video_size)
 
         while True:
             ret, frame = cap.read()
             
-            Number_frseries = Number_frseries + 1
-            
             if not ret:
                 break
             
+            Number_frseries = Number_frseries + 1
+
             #image = Image.fromarray(frame)
             #print(image.mode)
             # RGB
-            save_imgpath = 'out/{}.jpg'.format(Number_frseries)
+            save_imgpath = 'output_frimg/{}.jpg'.format(Number_frseries)
             #save_imgpath = 'out_frame/{}.bmp'.format(Number_frseries)
             
             yAxis = cv2.flip(frame, 1)
