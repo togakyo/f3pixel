@@ -15,15 +15,22 @@ from utils import letterbox_image
 from timeit import default_timer as timer
 
 import os
+import copy
 
 class ScoringService(object):
     IDvalue = 0 # クラス変数を宣言 = 0
+    Mem_IDvalue = 0 # クラス変数を宣言 = 0
+    
+    matches_cnt = 0
+    
+    #前フレームで検出した結果を格納
+    all_ObjectID_pos = []
+    all_ObjectID_oldpos = []
+    CurrentObjectID = []
 
     @classmethod
     def get_model(cls, model_path='../model'):
-        cls.IDvalue = 0 # Reset Object ID
-
-        modelpath = os.path.join(model_path, 'YOLOv3_cl10_val_loss67.h5')
+        modelpath = os.path.join(model_path, 'YOLOv3_cl2_ep009_val_loss52.h5')
 
         class_names = cls._get_class()
         anchors = cls._get_anchors()
@@ -37,106 +44,53 @@ class ScoringService(object):
         cls.yolo_model.load_weights(modelpath)  # make sure model, anchors and classes match
         return True
 
-
     @classmethod
     def predict(cls, input):
+        
+        cls.IDvalue = 0 # Reset Object ID
+        cls.Mem_IDvalue = 0 # Reset Memory Object ID
+        cls.all_ObjectID_pos = []
+        cls.all_ObjectID_oldpos = []
+        
+        cls.CurrentObjectID = []
+        
         predictions = []
         cap = cv2.VideoCapture(input)
         fname = os.path.basename(input)
 
         Nm_fr = 0
-
+        Nm_3fr_limit = 0
+        
         while True:
             Nm_fr = Nm_fr + 1
-
+            Nm_3fr_limit = Nm_3fr_limit + 1
+            
+            cls.IDvalue = cls.Mem_IDvalue # Sum Memory Object ID
+            
             ret, frame = cap.read()
             if not ret:
                 break
-
-            image = Image.fromarray(frame)
+            
+            im_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            image = Image.fromarray(im_rgb)
+            
             print(frame.shape)
             print("PROCESSING FRAME = ", Nm_fr)
-            prediction = cls.detect_image(image)
-
+            prediction = cls.detect_image(image, Nm_fr, cls.CurrentObjectID, cls.all_ObjectID_pos, cls.all_ObjectID_oldpos)
+            
             predictions.append(prediction)
+
+            if Nm_3fr_limit > 10:
+                Nm_3fr_limit = 0
+                cls.Mem_IDvalue = cls.IDvalue # Memory Last Object ID
+
+            cls.IDvalue = 0 # Reset Object ID/frame
 
         cap.release()
         return {fname: predictions}
     
     @classmethod
-    def pw_outdouga(cls, input):
-        output_path = "../output/" + str(cls.IDvalue) + "result_douga.mp4"
-
-        cap = cv2.VideoCapture(input)
-        fname = os.path.basename(input)
-
-        video_FourCC = int(cap.get(cv2.CAP_PROP_FOURCC))
-        video_fps = cap.get(cv2.CAP_PROP_FPS)
-        video_size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
-
-        print("video_FourCC = " , video_FourCC)#1983148141
-        print("video_fps = " , video_fps)  # 5.0
-        print("video_size = " , video_size) # (1936, 1216)
-        # output
-        out = cv2.VideoWriter(output_path, video_FourCC, video_fps, video_size)
-        
-        Nm_fr = 0
-
-        while True:
-            Nm_fr = Nm_fr + 1
-
-            ret, frame = cap.read()
-            if not ret:
-                break
-
-            image = Image.fromarray(frame)
-            print(frame.shape)
-            print("PROCESSING FRAME = ", Nm_fr)
-            image = cls.ret_frame(image)# ここでフレーム毎＝画像イメージ毎に動画をバラしている
-            result = np.asarray(image)
-
-            cv2.putText(result, text=str(cls.IDvalue), org=(3, 15), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-                    fontScale=0.50, color=(255, 0, 0), thickness=2)
-
-            if ret == True:
-                out.write(result)
-
-        cap.release()
-
-    @classmethod
-    def _get_class(cls, model_path='../src'):
-        classes_path = os.path.join(model_path, 'voc_10classes.txt')
-      
-        with open(classes_path) as f:
-            class_names = f.readlines()
-        class_names = [c.strip() for c in class_names]
-        return class_names
-
-    @classmethod
-    def _get_anchors(cls, model_path='../src'):
-        anchors_path = os.path.join(model_path, '2020_yolo_anchors9_trainallimages.txt')
-      
-        with open(anchors_path) as f:
-            anchors = f.readline()
-        anchors = [float(x) for x in anchors.split(',')]
-        return np.array(anchors).reshape(-1, 2)
-
-    @classmethod
-    def compute_output(cls, image_data, image_shape):
-        input_image_shape = tf.constant(image_shape)
-
-        class_names = cls._get_class()
-        anchors = cls._get_anchors()
-        iou = 0.2    #Adjust param
-        score = 0.8   #Adjust param
-      
-        boxes, scores, classes = yolo_eval(cls.yolo_model(image_data), anchors,
-                                             len(class_names), input_image_shape,
-                                             score_threshold=score, iou_threshold=iou)
-        return boxes, scores, classes
-    
-    @classmethod
-    def detect_image(cls, image):
+    def detect_image(cls, image, frame_num, crt_objID, all_posinf, old_posinf):
         start = timer()
       
         model_image_size = (608, 608)
@@ -157,7 +111,16 @@ class ScoringService(object):
         Car_result_ALL = []
         Pedestrian_result_ALL = []
         all_result = []
-
+        
+        # フレーム単位の処理
+        #if frame_num == 1:
+        #else:
+        if frame_num > 1:
+            old_posinf.clear()
+            old_posinf = copy.copy(all_posinf)
+            all_posinf.clear()
+            
+        #オブジェクト単位の処理
         for i, c in reversed(list(enumerate(out_classes))):
             predicted_class = class_names[c]
             box = out_boxes[i]
@@ -176,34 +139,97 @@ class ScoringService(object):
             left = int(left)
             bottom = int(bottom)
             right = int(right)
-         
-            #1 予測結果より次のFrameの物体位置を予測
-            #nxt_result_txt = ' {},{},{},{},{}'.format(left, top, right, bottom, c)
-            
+
             #2 検出したbox_sizeを計算する　設定した閾値1024pix**2
-            sq_bdbox = (bottom - top)*(right - left) 
+            sq_bdbox = (bottom - top)*(right - left)
+            
+            #3 検出したboxの中心点を計算する
+            center_bdboxX = int((bottom - top)/2)
+            center_bdboxY = int((right - left)/2)
 
             if sq_bdbox >= 1024:#矩形サイズの閾値
-                #検出しない時の初期値
-                #Car_result = {'id': int(0), 'box2d': [int(0),int(0),int(image.height),int(image.width)]}
-                #Pedestrian_result = {'id': int(0), 'box2d': [int(0),int(0),int(image.height),int(image.width)]}
-
                 if predicted_class == 'Car':
-                    cls.IDvalue = cls.IDvalue + 1
-                    #車を検出した時
-                    Car_result = {'id': int(cls.IDvalue), 'box2d': [left,top,right,bottom]}#予測結果
+                    ObjID_set = 0
+                    
+                    if frame_num == 1:#1フレーム目は全て登録する
+                        cls.IDvalue = cls.IDvalue + 1
+                        #車を検出した時
+                        ObjID_set = cls.IDvalue
+                        Car_result = {'id': ObjID_set, 'box2d': [left,top,right,bottom]}#予測結果
+                        crt_objID.append(ObjID_set)
+                        #予測結果より次のFrameの物体位置を予測する情報を作成
+                        tmp_car = {'frame':frame_num,'id':ObjID_set, 'left':left, 'top':top, 'right':right, 'bottom':bottom}
+                        all_posinf.append(tmp_car)
+                    else:
+                        #current_pos check
+                        cls.matches_cnt = 0
 
-                    #検出したオブジェクトを格納 検出しない場合は初期値０が格納される
+                        for kt in range(len(old_posinf)):
+                            tmp_old_pos = old_posinf[kt]
+                            
+                            tmp_ObjID = 0
+                            tmp_left = 0
+                            tmp_top = 0
+                            tmp_right = 0
+                            tmp_bottom = 0
+                            
+                            for k, v in tmp_old_pos.items():
+                                # k= Tanaka v= 80 // Tanaka: 80
+                                if k == "ID":
+                                    print("Key = ", k)
+                                    print("Value = ",v)
+                                    tmp_ObjID = v
+                                elif k == "left":
+                                    print("Key = ", k)
+                                    print("Value = ",v)
+                                    tmp_left = v
+                                elif k == "top":
+                                    print("Key = ", k)
+                                    print("Value = ",v)
+                                    tmp_top = v
+                                elif k == "right":
+                                    print("Key = ", k)
+                                    print("Value = ",v)
+                                    tmp_right = v
+                                elif k == "bottom":
+                                    print("Key = ", k)
+                                    print("Value = ",v)
+                                    tmp_bottom = v
+                            if (tmp_left <= center_bdboxX <= tmp_right) and (tmp_top <= center_bdboxY <= tmp_bottom):
+                                ObjID_set = tmp_ObjID
+                                cls.matches_cnt = cls.matches_cnt + 1
+                                #該当する
+                            #else:
+                                
+                        #もしどのIDにも当てはまらない場合
+                        if cls.matches_cnt == 0:
+                            cls.IDvalue = cls.IDvalue + 1
+                            ObjID_set = cls.IDvalue
+                        #else:
+                            #ObjID_set = tmp_ObjID
+                        
+                        #更新したObjIDを登録する
+                        tmp_car = {'frame':frame_num,'id':ObjID_set, 'left':left, 'top':top, 'right':right, 'bottom':bottom}
+                        all_posinf.append(tmp_car)
+                    
+                        #車を検出した時
+                        Car_result = {'id': ObjID_set, 'box2d': [left,top,right,bottom]}#予測結果
+                        crt_objID.append(ObjID_set)
+                    
+
+                    #検出したオブジェクトを格納 検出しない場合は空欄が格納される
                     Car_result_ALL.append(Car_result)#車
-                    #Pedestrian_result_ALL.append(Pedestrian_result)#歩行者
-                  
+
                 elif predicted_class == 'Pedestrian':
                     cls.IDvalue = cls.IDvalue + 1
                     #歩行者を検出した時
                     Pedestrian_result = {'id': int(cls.IDvalue), 'box2d': [left,top,right,bottom]}#予測結果
               
-                    #検出したオブジェクトを格納 検出しない場合は初期値０が格納される
-                    #Car_result_ALL.append(Car_result)#車
+                    #予測結果より次のFrameの物体位置を予測する情報を作成
+                    tmp_ped = {'frame':frame_num,'id':int(cls.IDvalue), 'left':left, 'top':top, 'right':right, 'bottom':bottom}
+                    cls.all_ObjectID_pos.append(tmp_ped)
+
+                    #検出したオブジェクトを格納 検出しない場合は空欄が格納される
                     Pedestrian_result_ALL.append(Pedestrian_result)#歩行者
         
         all_result = {'Car': Car_result_ALL, 'Pedestrian': Pedestrian_result_ALL}
@@ -211,8 +237,65 @@ class ScoringService(object):
         print("1フレームの処理時間 = ", end - start)
         return all_result
 
+    
     @classmethod
-    def ret_frame(cls, image):
+    def pw_outdouga(cls, input):
+        cls.IDvalue = 0 # Reset Object ID
+        cls.Mem_IDvalue = 0 # Reset Memory Object ID
+        cls.all_ObjectID_pos = []
+        
+        cap = cv2.VideoCapture(input)
+        fname = os.path.basename(input)
+
+        output_path = "../output/" + "result_"+ fname
+        video_FourCC = int(cap.get(cv2.CAP_PROP_FOURCC))
+        video_fps = cap.get(cv2.CAP_PROP_FPS)
+        video_size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+
+        print("video_FourCC = " , video_FourCC)#1983148141
+        print("video_fps = " , video_fps)  # 5.0
+        print("video_size = " , video_size) # (1936, 1216)
+        # output
+        out = cv2.VideoWriter(output_path, video_FourCC, video_fps, video_size)
+        
+        Nm_fr = 0
+        Nm_3fr_limit = 0
+
+        while True:
+            Nm_fr = Nm_fr + 1
+            Nm_3fr_limit = Nm_3fr_limit + 1
+            
+            cls.IDvalue = cls.Mem_IDvalue # Sum Memory Object ID
+
+            ret, frame = cap.read()
+            if not ret:
+                break
+
+            im_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            image = Image.fromarray(im_rgb)
+            
+            print(frame.shape)
+            print("PROCESSING FRAME = ", Nm_fr)
+            image = cls.ret_frame(image, frame, Nm_fr)# ここでフレーム毎＝画像イメージ毎に動画をバラしている
+            result = np.asarray(image)
+            im_rgbresult = result[:, :, [2, 1, 0]]
+
+            #cv2.putText(result, text=str(cls.IDvalue), org=(3, 15), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+            #        fontScale=0.50, color=(255, 0, 0), thickness=2)
+
+            if ret == True:
+                out.write(im_rgbresult)
+            
+            if Nm_3fr_limit > 10:
+                Nm_3fr_limit = 0
+                cls.Mem_IDvalue = cls.IDvalue # Memory Last Object ID
+
+            cls.IDvalue = 0 # Reset Object ID/frame
+
+        cap.release()
+    
+    @classmethod
+    def ret_frame(cls, image, cv2image, frame_num):
         # Generate colors for drawing bounding boxes.
         hsv_tuples = [(x / 10, 1., 1.) for x in range(10)]
         colors = list(map(lambda x: colorsys.hsv_to_rgb(*x), hsv_tuples))
@@ -237,25 +320,17 @@ class ScoringService(object):
         image_shape = [image.size[1], image.size[0]]
 
         out_boxes, out_scores, out_classes = cls.compute_output(image_data, image_shape)
-
-        Car_result_ALL = []
-        Pedestrian_result_ALL = []
-        all_result = []
         
         font = ImageFont.truetype(font='../box_font/FiraMono-Medium.otf',
                                   size=np.floor(3e-2 * image.size[1] + 0.5).astype('int32'))
 
         thickness = (image.size[0] + image.size[1]) // 300
-
+        
         for i, c in reversed(list(enumerate(out_classes))):
             predicted_class = class_names[c]
             box = out_boxes[i]
             score = out_scores[i]
             
-            label = '{}_{:.2f}_{}'.format(predicted_class, score, str(cls.IDvalue))#put the ID for each obj
-            draw = ImageDraw.Draw(image)
-            label_size = draw.textsize(label, font)
-
             top, left, bottom, right = box
             top = max(0, np.floor(top + 0.5).astype('int32'))
             left = max(0, np.floor(left + 0.5).astype('int32'))
@@ -267,20 +342,21 @@ class ScoringService(object):
             left = int(left)
             bottom = int(bottom)
             right = int(right)
-
-            if top - label_size[1] >= 0:
-                text_origin = np.array([left, top - label_size[1]])
-            else:
-                text_origin = np.array([left, top + 1])
-         
-            #1 予測結果より次のFrameの物体位置を予測
-            #nxt_result_txt = ' {},{},{},{},{}'.format(left, top, right, bottom, c)
             
             #2 検出したbox_sizeを計算する　設定した閾値1024pix**2
             sq_bdbox = (bottom - top)*(right - left) 
 
             if sq_bdbox >= 1024:#矩形サイズの閾値
                 if predicted_class == 'Car'or predicted_class == 'Pedestrian':# Car or Pedes
+                    cls.IDvalue = cls.IDvalue + 1
+                    label = '{}_{:.2f}_{}'.format(predicted_class, score, str(cls.IDvalue))#put the ID for each obj
+                    draw = ImageDraw.Draw(image)
+                    label_size = draw.textsize(label, font)
+                    if top - label_size[1] >= 0:
+                        text_origin = np.array([left, top - label_size[1]])
+                    else:
+                        text_origin = np.array([left, top + 1])
+            
                     # My kingdom for a good redistributable image drawing library.
                     for i in range(thickness):
                         draw.rectangle([left + i, top + i, right - i, bottom - i], outline=colors[c])
@@ -292,4 +368,35 @@ class ScoringService(object):
         print("1フレームの処理時間 = ", end - start)
         return image
 
+    @classmethod
+    def _get_class(cls, model_path='../src'):
+        classes_path = os.path.join(model_path, 'voc_2classes.txt')
+      
+        with open(classes_path) as f:
+            class_names = f.readlines()
+        class_names = [c.strip() for c in class_names]
+        return class_names
+
+    @classmethod
+    def _get_anchors(cls, model_path='../src'):
+        anchors_path = os.path.join(model_path, '2020_yolo_anchors9_FOC2_allimg.txt')
+      
+        with open(anchors_path) as f:
+            anchors = f.readline()
+        anchors = [float(x) for x in anchors.split(',')]
+        return np.array(anchors).reshape(-1, 2)
+
+    @classmethod
+    def compute_output(cls, image_data, image_shape):
+        input_image_shape = tf.constant(image_shape)
+
+        class_names = cls._get_class()
+        anchors = cls._get_anchors()
+        iou = 0.3    #Adjust param
+        score = 0.6   #Adjust param
+      
+        boxes, scores, classes = yolo_eval(cls.yolo_model(image_data), anchors,
+                                             len(class_names), input_image_shape,
+                                             score_threshold=score, iou_threshold=iou)
+        return boxes, scores, classes
     
