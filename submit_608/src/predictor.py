@@ -30,7 +30,7 @@ class ScoringService(object):
 
     @classmethod
     def get_model(cls, model_path='../model'):
-        modelpath = os.path.join(model_path, 'YOLOv3_cl2_ep013_val_loss51.h5')
+        modelpath = os.path.join(model_path, 'YOLOv3_608_cl2_ep013_val_loss51.h5')
 
         class_names = cls._get_class()
         anchors = cls._get_anchors()
