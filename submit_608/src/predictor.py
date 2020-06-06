@@ -130,9 +130,9 @@ class ScoringService(object):
             #2 検出したbox_sizeを計算する　設定した閾値1024pix**2
             sq_bdbox = (bottom - top)*(right - left)
             
-            #3 検出したboxの中心点を計算する
-            center_bdboxX = int((bottom - top)/2)
-            center_bdboxY = int((right - left)/2)
+            #3 検出したboxの中心点の座標を計算する
+            center_bdboxX = int((bottom - top)/2) + top
+            center_bdboxY = int((right - left)/2) + left
 
             if sq_bdbox >= 1024:#矩形サイズの閾値
                 if predicted_class == 'Car':
@@ -328,8 +328,8 @@ class ScoringService(object):
             sq_bdbox = (bottom - top)*(right - left) 
             
             #3 検出したboxの中心点を計算する
-            center_bdboxX = int((bottom - top)/2)
-            center_bdboxY = int((right - left)/2)
+            center_bdboxX = int((bottom - top)/2) + top
+            center_bdboxY = int((right - left)/2) + left
             
             old_top = 0
             old_left = 0
