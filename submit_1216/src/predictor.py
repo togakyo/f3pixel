@@ -34,7 +34,7 @@ class ScoringService(object):
 
     @classmethod
     def get_model(cls, model_path='../model'):
-        modelpath = os.path.join(model_path, 'YOLOv3_608_cl2_ep013_val_loss51.h5')
+        modelpath = os.path.join(model_path, 'tinyYOLOv3_1216_cl2_ep004_loss46.h5')
 
         class_names = cls._get_class()
         anchors = cls._get_anchors()
@@ -86,7 +86,7 @@ class ScoringService(object):
     def detect_image(cls, image, frame_num, all_posinf, old_posinf):
         start = timer()
 
-        model_image_size = (608, 608)
+        model_image_size = (1216, 1216)
         class_names = cls._get_class()
 
         new_image_size = (image.width - (image.width % 32),
@@ -362,7 +362,7 @@ class ScoringService(object):
                             #print("old_right = ",cls.old_right)
                             #print("old_bottom = ",cls.old_bottom)
 
-                            band_value = 15
+                            band_value = 15 #Adjust param
                             exp_old_left = int(cls.old_left - band_value)
                             exp_old_top = int(cls.old_top - band_value)
                             exp_old_right = int(cls.old_right + band_value)
@@ -443,7 +443,7 @@ class ScoringService(object):
 
     @classmethod
     def _get_anchors(cls, model_path='../src'):
-        anchors_path = os.path.join(model_path, '2020_yolo_anchors9_FOC2_allimg.txt')
+        anchors_path = os.path.join(model_path, '2020_yolo_anchors6_FOC2_allimg.txt')
 
         with open(anchors_path) as f:
             anchors = f.readline()
