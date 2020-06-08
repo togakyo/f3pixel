@@ -432,7 +432,7 @@ class ScoringService(object):
         print("1フレームの処理時間 = ", end - start)
         return image
 
-    @classmethod√/§´≤√
+    @classmethod
     def _get_class(cls, model_path='../src'):
         classes_path = os.path.join(model_path, 'voc_2classes.txt')
 
