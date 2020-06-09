@@ -33,8 +33,8 @@ class ScoringService(object):
     all_ObjectID_ped_pos = []
     all_ObjectID_ped_oldpos = []
 
-    matches_cnt = 0
-    matches_ped_cnt = 0
+    #matches_cnt = 0
+    #matches_ped_cnt = 0
 
     @classmethod
     def get_model(cls, model_path='../model'):
@@ -55,14 +55,14 @@ class ScoringService(object):
     @classmethod
     def predict(cls, input):
 
-        cls.IDvalue_car = 0 # Reset Object ID
-        cls.IDvalue_ped = 0 #
+        IDvalue_car = 0 # Reset Object ID
+        IDvalue_ped = 0 #
 
-        cls.all_ObjectID_pos = []
-        cls.all_ObjectID_oldpos = []
+        all_ObjectID_pos = []
+        all_ObjectID_oldpos = []
 
-        cls.all_ObjectID_ped_pos = []
-        cls.all_ObjectID_ped_oldpos = []
+        all_ObjectID_ped_pos = []
+        all_ObjectID_ped_oldpos = []
 
         predictions = []
         cap = cv2.VideoCapture(input)
@@ -82,7 +82,7 @@ class ScoringService(object):
 
             print(frame.shape)
             print("PROCESSING FRAME = ", Nm_fr)
-            prediction = cls.detect_image(image, Nm_fr)
+            prediction = cls.detect_image(image, Nm_fr, IDvalue_car, IDvalue_ped, all_ObjectID_pos, all_ObjectID_oldpos, all_ObjectID_ped_pos, all_ObjectID_ped_oldpos)
 
             predictions.append(prediction)
 
@@ -90,7 +90,7 @@ class ScoringService(object):
         return {fname: predictions}
 
     @classmethod
-    def detect_image(cls, image, frame_num):
+    def detect_image(cls, image, frame_num, IDvalue_car, IDvalue_ped, all_ObjectID_pos, all_ObjectID_oldpos, all_ObjectID_ped_pos, all_ObjectID_ped_oldpos):
         start = timer()
 
         class_names = cls._get_class()
@@ -114,11 +114,11 @@ class ScoringService(object):
         # フレーム単位の処理
         if frame_num > 1:
             # Car / Pedestrian分ける
-            cls.all_ObjectID_oldpos = copy.copy(cls.all_ObjectID_pos)
-            cls.all_ObjectID_pos = []
+            all_ObjectID_oldpos = copy.copy(all_ObjectID_pos)
+            all_ObjectID_pos = []#clear
 
-            cls.all_ObjectID_ped_oldpos = copy.copy(cls.all_ObjectID_ped_pos)
-            cls.all_ObjectID_ped_pos = []
+            all_ObjectID_ped_oldpos = copy.copy(all_ObjectID_ped_pos)
+            all_ObjectID_ped_pos = []#clear
 
         #オブジェクト単位の処理
         for i, c in reversed(list(enumerate(out_classes))):
@@ -148,17 +148,17 @@ class ScoringService(object):
 
             if sq_bdbox >= 1024:#矩形サイズの閾値
                 if predicted_class == 'Car':
-                    cls.switch_oldIDcar(frame_num, center_bdboxX, center_bdboxY, left, top, right, bottom)
-                    ObjID_set = cls.ObjID_setimg
-                    Car_result = {'id': ObjID_set, 'box2d': [left,top,right,bottom]}#予測結果
+                    retobjID, ret_tmpcar = cls.switch_oldIDcar(all_ObjectID_oldpos, IDvalue_car, frame_num, center_bdboxX, center_bdboxY, left, top, right, bottom)
+                    all_ObjectID_pos.append(ret_tmpcar)
+                    Car_result = {'id': int(retobjID), 'box2d': [left,top,right,bottom]}#予測結果
 
                     #検出したオブジェクトを格納 検出しない場合は空欄が格納される
                     Car_result_ALL.append(Car_result)#車
 
                 elif predicted_class == 'Pedestrian':
-                    cls.switch_oldIDped(frame_num, center_bdboxX, center_bdboxY, left, top, right, bottom)
-                    ObjID_set = cls.ObjID_setimg
-                    Pedestrian_result = {'id': int(cls.IDvalue_ped), 'box2d': [left,top,right,bottom]}#予測結果
+                    retobjID, ret_tmpped = cls.switch_oldIDped(all_ObjectID_ped_oldpos, IDvalue_ped, frame_num, center_bdboxX, center_bdboxY, left, top, right, bottom)
+                    all_ObjectID_ped_pos.append(ret_tmpped)
+                    Pedestrian_result = {'id': int(retobjID), 'box2d': [left,top,right,bottom]}#予測結果
 
                     #検出したオブジェクトを格納 検出しない場合は空欄が格納される
                     Pedestrian_result_ALL.append(Pedestrian_result)#歩行者
@@ -170,11 +170,11 @@ class ScoringService(object):
 
     @classmethod
     def pw_outdouga(cls, input):
-        cls.IDvalue_car = 0 # Reset Object ID
-        cls.IDvalue_ped = 0 #
+        IDvalue_car = 0 # Reset Object ID
+        IDvalue_ped = 0 #
 
-        cls.all_ObjectID_pos = []
-        cls.all_ObjectID_oldpos = []
+        all_ObjectID_pos = []
+        all_ObjectID_oldpos = []
 
         cap = cv2.VideoCapture(input)
         fname = os.path.basename(input)
@@ -202,34 +202,35 @@ class ScoringService(object):
             im_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             image = Image.fromarray(im_rgb)
 
-            print(frame.shape)
             print("PROCESSING FRAME = ", Nm_fr)
-            #image = cls.ret_frame(image, Nm_fr, cls.all_ObjectID_pos, cls.all_ObjectID_oldpos)
-            image = cls.ret_frame(image, Nm_fr)
+            image = cls.ret_frame(image, Nm_fr, all_ObjectID_pos, all_ObjectID_oldpos, IDvalue_car)
+            #image = cls.ret_frame(image, Nm_fr)
             # ここでフレーム毎＝画像イメージ毎に動画をバラしている
 
             result = np.asarray(image)
             im_rgbresult = result[:, :, [2, 1, 0]]
-
             if ret == True:
                 out.write(im_rgbresult)
 
         cap.release()
 
     @classmethod
-    def switch_oldIDcar(cls, frame_num, pos_centx, pos_centy, left, top, right, bottom):
-        cls.ObjID_setimg = 0
-        cls.matches_cnt = 0
+    def switch_oldIDcar(cls, car_oldpos, currentID, frame_num, pos_centx, pos_centy, left, top, right, bottom):
+        #cls.ObjID_setimg = 0
+        #cls.matches_cnt = 0pn ;/xd;cc/
+
+        matches_cnt = 0
 
         if frame_num == 1:#1フレーム目は全て登録する
-            cls.IDvalue_car = cls.IDvalue_car + 1
-            cls.ObjID_setimg = cls.IDvalue_car
+            currentID = currentID + 1
+            tmpObjID_setimg = currentID
             #else:
                 #nashi
         else:
             # Car
-            for kt in range(len(cls.all_ObjectID_oldpos)):
-                tmp_old_pos = cls.all_ObjectID_oldpos[kt]
+
+            for kt in range(len(car_oldpos)):
+                tmp_old_pos = car_oldpos[kt]
 
                 cls.old_left = cls.getValue('left', tmp_old_pos)
                 cls.old_top  = cls.getValue('top', tmp_old_pos)
@@ -244,43 +245,46 @@ class ScoringService(object):
 
                 if(( pos_centx >= exp_old_left ) or ( pos_centx <= exp_old_right )):
                     if(( pos_centy >= exp_old_top) or ( pos_centy <= exp_old_bottom )):
-                        cls.matches_cnt = cls.matches_cnt + 1
-                        cls.ObjID_setimg = cls.getValue('id', tmp_old_pos)
+                        matches_cnt = matches_cnt + 1
+                        tmpObjID_setimg = cls.getValue('id', tmp_old_pos)
+                        break
 
             #前回フレームより過去のオブジェクトを全てチェックした結果を出力
-            print("cls.matches_cnt = ", cls.matches_cnt)
+            print("cls.matches_cnt = ", matches_cnt)
 
             #もしどのIDにも当てはまらない場合
-            if cls.matches_cnt == 0:
-                cls.IDvalue_car = cls.IDvalue_car + 1
-                cls.ObjID_setimg = cls.IDvalue_car
+            if matches_cnt == 0:
+                currentID = currentID + 1
+                tmpObjID_setimg = currentID
             #else:
                 #nashi
 
         #更新したObjIDを登録する
         tmp_car = [{'Key':'frame',  'Value':frame_num},
-                   {'Key':'id',     'Value':cls.ObjID_setimg},
+                   {'Key':'id',     'Value':tmpObjID_setimg},
                    {'Key':'left',   'Value':left},
                    {'Key':'top',    'Value':top},
                    {'Key':'right',  'Value':right},
                    {'Key':'bottom', 'Value':bottom}]
 
-        cls.all_ObjectID_pos.append(tmp_car)
+        return tmpObjID_setimg, tmp_car
 
     @classmethod
-    def switch_oldIDped(cls, frame_num, pos_centx, pos_centy, left, top, right, bottom):
-        cls.ObjID_setimg = 0
-        cls.matches_ped_cnt = 0
+    def switch_oldIDped(cls, ped_oldpos, currentID, frame_num, pos_centx, pos_centy, left, top, right, bottom):
+        #cls.ObjID_setimg = 0
+        #cls.matches_ped_cnt = 0
+        matches_cnt = 0
 
         if frame_num == 1:#1フレーム目は全て登録する
-            cls.IDvalue_ped = cls.IDvalue_ped + 1
-            cls.ObjID_setimg = cls.IDvalue_ped
+            currentID = currentID + 1
+            tmpObjID_setimg = currentID
             #else:
                 #nashi
         else:
-            # Car
-            for kt in range(len(cls.all_ObjectID_ped_oldpos)):
-                tmp_old_pos = cls.all_ObjectID_ped_oldpos[kt]
+            # Pedestrian
+
+            for kt in range(len(ped_oldpos)):
+                tmp_old_pos = ped_oldpos[kt]
 
                 cls.old_left = cls.getValue('left', tmp_old_pos)
                 cls.old_top  = cls.getValue('top', tmp_old_pos)
@@ -295,31 +299,32 @@ class ScoringService(object):
 
                 if(( pos_centx >= exp_old_left ) or ( pos_centx <= exp_old_right )):
                     if(( pos_centy >= exp_old_top) or ( pos_centy <= exp_old_bottom )):
-                        cls.matches_cnt = cls.matches_cnt + 1
-                        cls.ObjID_setimg = cls.getValue('id', tmp_old_pos)
+                        matches_cnt = matches_cnt + 1
+                        tmpObjID_setimg = cls.getValue('id', tmp_old_pos)
+                        break
 
             #前回フレームより過去のオブジェクトを全てチェックした結果を出力
-            print("cls.matches_cnt = ", cls.matches_ped_cnt)
+            print("matches_cnt = ", matches_cnt)
 
             #もしどのIDにも当てはまらない場合
-            if cls.matches_ped_cnt == 0:
-                cls.IDvalue_ped = cls.IDvalue_ped + 1
-                cls.ObjID_setimg = cls.IDvalue_ped
+            if matches_cnt == 0:
+                currentID = currentID + 1
+                tmpObjID_setimg = currentID
             #else:
                 #nashi
 
         #更新したObjIDを登録する
         tmp_ped = [{'Key':'frame',  'Value':frame_num},
-                   {'Key':'id',     'Value':cls.ObjID_setimg},
+                   {'Key':'id',     'Value':tmpObjID_setimg},
                    {'Key':'left',   'Value':left},
                    {'Key':'top',    'Value':top},
                    {'Key':'right',  'Value':right},
                    {'Key':'bottom', 'Value':bottom}]
 
-        cls.all_ObjectID_ped_pos.append(tmp_ped)
+        return tmpObjID_setimg, tmp_ped
 
     @classmethod
-    def ret_frame(cls, image, frame_num):
+    def ret_frame(cls, image, frame_num, all_ObjectID_pos, all_ObjectID_oldpos, IDvalue):
         hsv_tuples = [(x / 10, 1., 1.) for x in range(10)]
         colors = list(map(lambda x: colorsys.hsv_to_rgb(*x), hsv_tuples))
         colors = list(map(lambda x: (int(x[0] * 255), int(x[1] * 255), int(x[2] * 255)), colors))
@@ -348,11 +353,11 @@ class ScoringService(object):
         # フレーム単位の処理
         if frame_num > 1:
             # Car / Pedestrian分ける
-            cls.all_ObjectID_oldpos = copy.copy(cls.all_ObjectID_pos)
-            cls.all_ObjectID_pos = []
+            all_ObjectID_oldpos = copy.copy(all_ObjectID_pos)
+            all_ObjectID_pos = []
 
-            cls.all_ObjectID_ped_oldpos = copy.copy(cls.all_ObjectID_ped_pos)
-            cls.all_ObjectID_ped_pos = []
+            #all_ObjectID_ped_oldpos = copy.copy(all_ObjectID_ped_pos)
+            #all_ObjectID_ped_pos = []
 
         # オブジェクト単位の処理
         for i, c in reversed(list(enumerate(out_classes))):
@@ -377,9 +382,12 @@ class ScoringService(object):
                     center_bdboxX = int((bottom - top)/2) + top
                     center_bdboxY = int((right - left)/2) + left
 
-                    cls.switch_oldIDcar(frame_num, center_bdboxX, center_bdboxY, left, top, right, bottom)
+                    retobjID, ret_tmpcar = cls.switch_oldIDcar(all_ObjectID_oldpos, IDvalue, frame_num, center_bdboxX, center_bdboxY, left, top, right, bottom)
 
-                    label = '{}_{:.2f}_{}'.format(predicted_class, score, str(cls.ObjID_setimg))#put the ID for each obj
+                    print("Return ID = ", retobjID)
+                    all_ObjectID_pos.append(ret_tmpcar)
+
+                    label = '{}_{:.2f}_{}'.format(predicted_class, score, str(retobjID))#put the ID for each obj
                     draw = ImageDraw.Draw(image)
                     label_size = draw.textsize(label, font)
                     if top - label_size[1] >= 0:
@@ -434,7 +442,7 @@ class ScoringService(object):
         class_names = cls._get_class()
         anchors = cls._get_anchors()
         iou = 0.4    #Adjust param
-        score = 0.7   #Adjust param
+        score = 0.5   #Adjust param
 
         boxes, scores, classes = yolo_eval(cls.yolo_model(image_data), anchors,
                                              len(class_names), input_image_shape,
