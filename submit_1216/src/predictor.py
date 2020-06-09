@@ -30,11 +30,15 @@ class ScoringService(object):
     #前フレームで検出した結果を格納
     all_ObjectID_pos = []
     all_ObjectID_oldpos = []
-    CurrentObjectID = []
+    all_ObjectID_ped_pos = []
+    all_ObjectID_ped_oldpos = []
+
+    matches_cnt = 0
+    matches_ped_cnt = 0
 
     @classmethod
     def get_model(cls, model_path='../model'):
-        modelpath = os.path.join(model_path, 'tinyYOLOv3_1216_cl2_ep004_loss46.h5')
+        modelpath = os.path.join(model_path, 'tinyYOLOv3_1216_cl2_ep007_loss43.h5')
 
         class_names = cls._get_class()
         anchors = cls._get_anchors()
@@ -57,6 +61,9 @@ class ScoringService(object):
         cls.all_ObjectID_pos = []
         cls.all_ObjectID_oldpos = []
 
+        cls.all_ObjectID_ped_pos = []
+        cls.all_ObjectID_ped_oldpos = []
+
         predictions = []
         cap = cv2.VideoCapture(input)
         fname = os.path.basename(input)
@@ -75,7 +82,7 @@ class ScoringService(object):
 
             print(frame.shape)
             print("PROCESSING FRAME = ", Nm_fr)
-            prediction = cls.detect_image(image, Nm_fr, cls.all_ObjectID_pos, cls.all_ObjectID_oldpos)
+            prediction = cls.detect_image(image, Nm_fr)
 
             predictions.append(prediction)
 
@@ -83,10 +90,9 @@ class ScoringService(object):
         return {fname: predictions}
 
     @classmethod
-    def detect_image(cls, image, frame_num, all_posinf, old_posinf):
+    def detect_image(cls, image, frame_num):
         start = timer()
 
-        model_image_size = (1216, 1216)
         class_names = cls._get_class()
 
         new_image_size = (image.width - (image.width % 32),
@@ -107,9 +113,12 @@ class ScoringService(object):
 
         # フレーム単位の処理
         if frame_num > 1:
-            old_posinf.clear()
-            old_posinf = copy.copy(all_posinf)
-            all_posinf.clear()
+            # Car / Pedestrian分ける
+            cls.all_ObjectID_oldpos = copy.copy(cls.all_ObjectID_pos)
+            cls.all_ObjectID_pos = []
+
+            cls.all_ObjectID_ped_oldpos = copy.copy(cls.all_ObjectID_ped_pos)
+            cls.all_ObjectID_ped_pos = []
 
         #オブジェクト単位の処理
         for i, c in reversed(list(enumerate(out_classes))):
@@ -133,89 +142,23 @@ class ScoringService(object):
 
             #2 検出したbox_sizeを計算する　設定した閾値1024pix**2
             sq_bdbox = (bottom - top)*(right - left)
-
-            #3 検出したboxの中心点の座標を計算する
+            #3 検出したboxの中心点座標を計算する
             center_bdboxX = int((bottom - top)/2) + top
             center_bdboxY = int((right - left)/2) + left
 
             if sq_bdbox >= 1024:#矩形サイズの閾値
                 if predicted_class == 'Car':
-                    ObjID_set = 0
-
-                    if frame_num == 1:#1フレーム目は全て登録する
-                        cls.IDvalue_car = cls.IDvalue_car + 1
-                        #車を検出した時
-                        ObjID_set = cls.IDvalue_car
-                        Car_result = {'id': ObjID_set, 'box2d': [left,top,right,bottom]}#予測結果
-                        #予測結果より次のFrameの物体位置を予測する情報を作成
-                        tmp_car = {'frame':frame_num,'id':ObjID_set, 'left':left, 'top':top, 'right':right, 'bottom':bottom}
-                        all_posinf.append(tmp_car)
-                    else:
-                        #current_pos check
-                        cls.matches_cnt = 0
-
-                        for kt in range(len(old_posinf)):
-                            tmp_old_pos = old_posinf[kt]
-
-                            tmp_ObjID = 0
-                            tmp_left = 0
-                            tmp_top = 0
-                            tmp_right = 0
-                            tmp_bottom = 0
-
-                            for k, v in tmp_old_pos.items():
-                                # k= Tanaka v= 80 // Tanaka: 80
-                                if k == "id":
-                                    print("Key = ", k)
-                                    print("Value = ",v)
-                                    tmp_ObjID = v
-                                elif k == "left":
-                                    print("Key = ", k)
-                                    print("Value = ",v)
-                                    tmp_left = v
-                                elif k == "top":
-                                    print("Key = ", k)
-                                    print("Value = ",v)
-                                    tmp_top = v
-                                elif k == "right":
-                                    print("Key = ", k)
-                                    print("Value = ",v)
-                                    tmp_right = v
-                                elif k == "bottom":
-                                    print("Key = ", k)
-                                    print("Value = ",v)
-                                    tmp_bottom = v
-                            if (tmp_left <= center_bdboxX <= tmp_right) and (tmp_top <= center_bdboxY <= tmp_bottom):
-                                ObjID_set = tmp_ObjID
-                                cls.matches_cnt = cls.matches_cnt + 1
-                                #該当する
-                            #else:
-
-                        #もしどのIDにも当てはまらない場合
-                        if cls.matches_cnt == 0:
-                            cls.IDvalue_car = cls.IDvalue_car + 1
-                            ObjID_set = cls.IDvalue_car
-                        #else:
-                            #ObjID_set = tmp_ObjID
-
-                        #更新したObjIDを登録する
-                        tmp_car = {'frame':frame_num,'id':ObjID_set, 'left':left, 'top':top, 'right':right, 'bottom':bottom}
-                        all_posinf.append(tmp_car)
-
-                        #車を検出した時
-                        Car_result = {'id': ObjID_set, 'box2d': [left,top,right,bottom]}#予測結果
+                    cls.switch_oldIDcar(frame_num, center_bdboxX, center_bdboxY, left, top, right, bottom)
+                    ObjID_set = cls.ObjID_setimg
+                    Car_result = {'id': ObjID_set, 'box2d': [left,top,right,bottom]}#予測結果
 
                     #検出したオブジェクトを格納 検出しない場合は空欄が格納される
                     Car_result_ALL.append(Car_result)#車
 
                 elif predicted_class == 'Pedestrian':
-                    cls.IDvalue_ped = cls.IDvalue_ped + 1
-                    #歩行者を検出した時
+                    cls.switch_oldIDped(frame_num, center_bdboxX, center_bdboxY, left, top, right, bottom)
+                    ObjID_set = cls.ObjID_setimg
                     Pedestrian_result = {'id': int(cls.IDvalue_ped), 'box2d': [left,top,right,bottom]}#予測結果
-
-                    #予測結果より次のFrameの物体位置を予測する情報を作成
-                    tmp_ped = {'frame':frame_num,'id':int(cls.IDvalue_ped), 'left':left, 'top':top, 'right':right, 'bottom':bottom}
-                    cls.all_ObjectID_pos.append(tmp_ped)
 
                     #検出したオブジェクトを格納 検出しない場合は空欄が格納される
                     Pedestrian_result_ALL.append(Pedestrian_result)#歩行者
@@ -274,9 +217,106 @@ class ScoringService(object):
         cap.release()
 
     @classmethod
-    def getValue(cls, key, items):
-        values = [x['Value'] for x in items if 'Key' in x and 'Value' in x and x['Key'] == key]
-        return values[0] if values else None
+    def switch_oldIDcar(cls, frame_num, pos_centx, pos_centy, left, top, right, bottom):
+        cls.ObjID_setimg = 0
+        cls.matches_cnt = 0
+
+        if frame_num == 1:#1フレーム目は全て登録する
+            cls.IDvalue_car = cls.IDvalue_car + 1
+            cls.ObjID_setimg = cls.IDvalue_car
+            #else:
+                #nashi
+        else:
+            # Car
+            for kt in range(len(cls.all_ObjectID_oldpos)):
+                tmp_old_pos = cls.all_ObjectID_oldpos[kt]
+
+                cls.old_left = cls.getValue('left', tmp_old_pos)
+                cls.old_top  = cls.getValue('top', tmp_old_pos)
+                cls.old_right = cls.getValue('right', tmp_old_pos)
+                cls.old_bottom = cls.getValue('bottom', tmp_old_pos)
+
+                band_value = 15 #Adjust param
+                exp_old_left = int(cls.old_left - band_value)
+                exp_old_top = int(cls.old_top - band_value)
+                exp_old_right = int(cls.old_right + band_value)
+                exp_old_bottom = int(cls.old_bottom + band_value)
+
+                if(( pos_centx >= exp_old_left ) or ( pos_centx <= exp_old_right )):
+                    if(( pos_centy >= exp_old_top) or ( pos_centy <= exp_old_bottom )):
+                        cls.matches_cnt = cls.matches_cnt + 1
+                        cls.ObjID_setimg = cls.getValue('id', tmp_old_pos)
+
+            #前回フレームより過去のオブジェクトを全てチェックした結果を出力
+            print("cls.matches_cnt = ", cls.matches_cnt)
+
+            #もしどのIDにも当てはまらない場合
+            if cls.matches_cnt == 0:
+                cls.IDvalue_car = cls.IDvalue_car + 1
+                cls.ObjID_setimg = cls.IDvalue_car
+            #else:
+                #nashi
+
+        #更新したObjIDを登録する
+        tmp_car = [{'Key':'frame',  'Value':frame_num},
+                   {'Key':'id',     'Value':cls.ObjID_setimg},
+                   {'Key':'left',   'Value':left},
+                   {'Key':'top',    'Value':top},
+                   {'Key':'right',  'Value':right},
+                   {'Key':'bottom', 'Value':bottom}]
+
+        cls.all_ObjectID_pos.append(tmp_car)
+
+    @classmethod
+    def switch_oldIDped(cls, frame_num, pos_centx, pos_centy, left, top, right, bottom):
+        cls.ObjID_setimg = 0
+        cls.matches_ped_cnt = 0
+
+        if frame_num == 1:#1フレーム目は全て登録する
+            cls.IDvalue_ped = cls.IDvalue_ped + 1
+            cls.ObjID_setimg = cls.IDvalue_ped
+            #else:
+                #nashi
+        else:
+            # Car
+            for kt in range(len(cls.all_ObjectID_ped_oldpos)):
+                tmp_old_pos = cls.all_ObjectID_ped_oldpos[kt]
+
+                cls.old_left = cls.getValue('left', tmp_old_pos)
+                cls.old_top  = cls.getValue('top', tmp_old_pos)
+                cls.old_right = cls.getValue('right', tmp_old_pos)
+                cls.old_bottom = cls.getValue('bottom', tmp_old_pos)
+
+                band_value = 15 #Adjust param
+                exp_old_left = int(cls.old_left - band_value)
+                exp_old_top = int(cls.old_top - band_value)
+                exp_old_right = int(cls.old_right + band_value)
+                exp_old_bottom = int(cls.old_bottom + band_value)
+
+                if(( pos_centx >= exp_old_left ) or ( pos_centx <= exp_old_right )):
+                    if(( pos_centy >= exp_old_top) or ( pos_centy <= exp_old_bottom )):
+                        cls.matches_cnt = cls.matches_cnt + 1
+                        cls.ObjID_setimg = cls.getValue('id', tmp_old_pos)
+
+            #前回フレームより過去のオブジェクトを全てチェックした結果を出力
+            print("cls.matches_cnt = ", cls.matches_ped_cnt)
+
+            #もしどのIDにも当てはまらない場合
+            if cls.matches_ped_cnt == 0:
+                cls.IDvalue_ped = cls.IDvalue_ped + 1
+                cls.ObjID_setimg = cls.IDvalue_ped
+            #else:
+                #nashi
+
+        #更新したObjIDを登録する
+        tmp_ped = [{'Key':'frame',  'Value':frame_num},
+                   {'Key':'id',     'Value':cls.ObjID_setimg},
+                   {'Key':'left',   'Value':left},
+                   {'Key':'top',    'Value':top},
+                   {'Key':'right',  'Value':right},
+                   {'Key':'bottom', 'Value':bottom}]
+
+        cls.all_ObjectID_ped_pos.append(tmp_ped)
 
     @classmethod
     def ret_frame(cls, image, frame_num):
@@ -289,7 +329,6 @@ class ScoringService(object):
 
         start = timer()
 
-        model_image_size = (608, 608)
         class_names = cls._get_class()
 
         new_image_size = (image.width - (image.width % 32), image.height - (image.height % 32))
@@ -308,9 +347,12 @@ class ScoringService(object):
 
         # フレーム単位の処理
         if frame_num > 1:
+            # Car / Pedestrian分ける
             cls.all_ObjectID_oldpos = copy.copy(cls.all_ObjectID_pos)
-            #cls.all_ObjectID_pos.clear()
             cls.all_ObjectID_pos = []
+
+            cls.all_ObjectID_ped_oldpos = copy.copy(cls.all_ObjectID_ped_pos)
+            cls.all_ObjectID_ped_pos = []
 
         # オブジェクト単位の処理
         for i, c in reversed(list(enumerate(out_classes))):
@@ -328,79 +370,14 @@ class ScoringService(object):
             #2 検出したbox_sizeを計算する　設定した閾値1024pix**2
             sq_bdbox = (bottom - top)*(right - left)
 
-            cls.ObjID_setimg = 0
-            cls.matches_cnt = 0
-            print("len(cls.all_ObjectID_oldpos) = ", len(cls.all_ObjectID_oldpos))
-
             if sq_bdbox >= 1024:#矩形サイズの閾値 1024
                 #if predicted_class == 'Car'or predicted_class == 'Pedestrian':# Car or Pedes
                 if predicted_class == 'Car':
-
-                    #print("cls.all_ObjectID_oldpos = ", cls.all_ObjectID_oldpos)
-
                     #3 検出したboxの中心点座標を計算する
                     center_bdboxX = int((bottom - top)/2) + top
                     center_bdboxY = int((right - left)/2) + left
 
-                    if frame_num == 1:#1フレーム目は全て登録する
-                        cls.IDvalue_car = cls.IDvalue_car + 1
-                        cls.ObjID_setimg = cls.IDvalue_car
-                    else:
-                        for kt in range(len(cls.all_ObjectID_oldpos)):
-                            tmp_old_pos = cls.all_ObjectID_oldpos[kt]
-                            #print("tmp_old_pos = ", tmp_old_pos)
-
-                            cls.ObjID_setimg = cls.getValue('id', tmp_old_pos)
-                            cls.old_left = cls.getValue('left', tmp_old_pos)
-                            cls.old_top  = cls.getValue('top', tmp_old_pos)
-                            cls.old_right = cls.getValue('right', tmp_old_pos)
-                            cls.old_bottom = cls.getValue('bottom', tmp_old_pos)
-
-                            #print("ObjID_setimg = ", cls.ObjID_setimg)
-                            #print("old_left = ", cls.old_left)
-                            #print("old_top = ",cls.old_top)
-                            #print("old_right = ",cls.old_right)
-                            #print("old_bottom = ",cls.old_bottom)
-
-                            band_value = 15 #Adjust param
-                            exp_old_left = int(cls.old_left - band_value)
-                            exp_old_top = int(cls.old_top - band_value)
-                            exp_old_right = int(cls.old_right + band_value)
-                            exp_old_bottom = int(cls.old_bottom + band_value)
-
-                            #print("center_bdboxX = ", center_bdboxX)
-                            #print("center_bdboxY = ", center_bdboxY)
-
-                            #print("exp_old_left = ", exp_old_left)
-                            #print("exp_old_top = ", exp_old_top)
-                            #print("exp_old_right = ",exp_old_right)
-                            #print("exp_old_bottom = ",exp_old_bottom)
-
-                            if(( center_bdboxX >= exp_old_left ) or ( center_bdboxX <= exp_old_right )):
-                                if(( center_bdboxY >= exp_old_top) or ( center_bdboxY <= exp_old_bottom )):
-                                    cls.matches_cnt = cls.matches_cnt + 1
-
-                        #前回フレームより過去のオブジェクトを全てチェックした結果を出力
-                        print("cls.matches_cnt = ", cls.matches_cnt)
-
-                        #もしどのIDにも当てはまらない場合
-                        if cls.matches_cnt == 0:
-                            cls.old_top = 0
-                            cls.old_left = 0
-                            cls.old_bottom = 0
-                            cls.old_right = 0
-
-                            cls.IDvalue_car = cls.IDvalue_car + 1
-                            cls.ObjID_setimg = cls.IDvalue_car
-
-                    #更新したObjIDを登録する
-                    tmp_car = [{'Key':'frame',  'Value':frame_num},
-                               {'Key':'id',     'Value':cls.ObjID_setimg},
-                               {'Key':'left',   'Value':left},
-                               {'Key':'top',    'Value':top},
-                               {'Key':'right',  'Value':right},
-                               {'Key':'bottom', 'Value':bottom}]
-                    cls.all_ObjectID_pos.append(tmp_car)
+                    cls.switch_oldIDcar(frame_num, center_bdboxX, center_bdboxY, left, top, right, bottom)
 
                     label = '{}_{:.2f}_{}'.format(predicted_class, score, str(cls.ObjID_setimg))#put the ID for each obj
                     draw = ImageDraw.Draw(image)
@@ -463,3 +440,8 @@ class ScoringService(object):
                                              len(class_names), input_image_shape,
                                              score_threshold=score, iou_threshold=iou)
         return boxes, scores, classes
+
+    @classmethod
+    def getValue(cls, key, items):
+        values = [x['Value'] for x in items if 'Key' in x and 'Value' in x and x['Key'] == key]
+        return values[0] if values else None
