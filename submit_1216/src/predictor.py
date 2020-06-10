@@ -136,8 +136,8 @@ class ScoringService(object):
             #2 検出したbox_sizeを計算する　設定した閾値1024pix**2
             sq_bdbox = (bottom - top)*(right - left)
             #3 検出したboxの中心点座標を計算する
-            center_bdboxX = int((bottom - top)/2) + top
-            center_bdboxY = int((right - left)/2) + left
+            center_bdboxX = int((right - left)/2) + left
+            center_bdboxY = int((bottom - top)/2) + top
 
             if sq_bdbox >= 1024:#矩形サイズの閾値
                 if predicted_class == 'Car':
@@ -164,6 +164,7 @@ class ScoringService(object):
     @classmethod
     def pw_outdouga(cls, input):
         cls.IDvalue_car = 0 # Reset Object ID
+        #IDvalue_car = 0 # Reset Object ID
 
         cls.all_ObjectID_pos = []
         cls.all_ObjectID_oldpos = []
@@ -242,7 +243,8 @@ class ScoringService(object):
             #all_ObjectID_ped_oldpos = copy.copy(all_ObjectID_ped_pos)
             #all_ObjectID_ped_pos = []
 
-        # オブジェクト単位の処理
+        #print("out_classes = ", out_classes)
+        # クラス分のfor文
         for i, c in reversed(list(enumerate(out_classes))):
             predicted_class = class_names[c]
             box = out_boxes[i]
@@ -257,17 +259,20 @@ class ScoringService(object):
 
             #2 検出したbox_sizeを計算する　設定した閾値1024pix**2
             sq_bdbox = (bottom - top)*(right - left)
+            #print("i = ",i)
+            #print("c = ",c)
 
             if sq_bdbox >= 1024:#矩形サイズの閾値 1024
                 #if predicted_class == 'Car'or predicted_class == 'Pedestrian':# Car or Pedes
                 if predicted_class == 'Car':
                     #3 検出したboxの中心点座標を計算する
-                    center_bdboxX = int((bottom - top)/2) + top
-                    center_bdboxY = int((right - left)/2) + left
+                    center_bdboxX = int((right - left)/2) + left
+                    center_bdboxY = int((bottom - top)/2) + top
 
                     cls.hit_oldpos = []
 
                     retobjID, ret_tmpcar = cls.switch_oldID(all_ObjectID_oldpos, IDvalue, frame_num, center_bdboxX, center_bdboxY, left, top, right, bottom)
+                    IDvalue = retobjID#
 
                     print("Return ID = ", retobjID)
                     all_ObjectID_pos.append(ret_tmpcar)
@@ -286,7 +291,7 @@ class ScoringService(object):
                     draw.rectangle([tuple(text_origin), tuple(text_origin + label_size)], fill=colors[0])
                     draw.text(text_origin, label, fill=(0, 0, 0), font=font)
 
-                    if frame_num > 1:
+                    if frame_num > 1 and (len(cls.hit_oldpos) != 0):
                         choose_old_pos = cls.hit_oldpos[0]
                         old_id         = cls.getValue('old_id',     choose_old_pos)
                         old_left       = cls.getValue('old_left',   choose_old_pos)
@@ -307,6 +312,8 @@ class ScoringService(object):
                         draw.text(text_origin2, label, fill=(0, 0, 0), font=font)
 
                         del draw
+        #覚える　ID
+        cls.IDvalue_car = IDvalue
 
         end = timer()
         print("1フレームの処理時間 = ", end - start)
@@ -366,14 +373,14 @@ class ScoringService(object):
                 old_right  = cls.getValue('right', tmp_old_pos)
                 old_bottom = cls.getValue('bottom', tmp_old_pos)
 
-                band_value     = 5 #Adjust param
-                exp_old_left   = int(old_left   - band_value)
-                exp_old_top    = int(old_top    - band_value)
-                exp_old_right  = int(old_right  + band_value)
-                exp_old_bottom = int(old_bottom + band_value)
+                band_value     = 15 #Adjust param　検出する範囲を狭める
+                exp_old_left   = int(old_left   + band_value)
+                exp_old_top    = int(old_top    + band_value)
+                exp_old_right  = int(old_right  - band_value)
+                exp_old_bottom = int(old_bottom - band_value)
 
-                if(( pos_centx >= exp_old_left ) or ( pos_centx <= exp_old_right )):
-                    if(( pos_centy >= exp_old_top) or ( pos_centy <= exp_old_bottom )):
+                if(( pos_centx >= exp_old_left ) and ( pos_centx <= exp_old_right )):
+                    if(( pos_centy >= exp_old_top) and ( pos_centy <= exp_old_bottom )):
 
                         matches_cnt     = matches_cnt + 1
                         tmpObjID_setimg = cls.getValue('id', tmp_old_pos)
@@ -384,14 +391,13 @@ class ScoringService(object):
                                       {'Key':'old_top',    'Value':old_top},
                                       {'Key':'old_right',  'Value':old_right},
                                       {'Key':'old_bottom', 'Value':old_bottom}]
-
-            cls.hit_oldpos.append(mem_oldpos)
+                        cls.hit_oldpos.append(mem_oldpos)
 
             #前回フレームより過去のオブジェクトを全てチェックした結果を出力
             print("matches_cnt = ", matches_cnt)
 
             #もしどのIDにも当てはまらない場合
-            if matches_cnt > 0:
+            if matches_cnt == 0:
                 currentID = currentID + 1
                 tmpObjID_setimg = currentID
             #else:
