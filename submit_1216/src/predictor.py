@@ -142,7 +142,9 @@ class ScoringService(object):
             if sq_bdbox >= 1024:#矩形サイズの閾値
                 if predicted_class == 'Car':
                     retobjID, ret_tmpcar = cls.switch_oldID(Aall_ObjectID_oldpos, AIDvalue_car, Aframe_num, center_bdboxX, center_bdboxY, left, top, right, bottom)
+                    AIDvalue_car = retobjID# point
                     Aall_ObjectID_pos.append(ret_tmpcar)
+
                     Car_result = {'id': int(retobjID), 'box2d': [left,top,right,bottom]}#予測結果
 
                     #検出したオブジェクトを格納 検出しない場合は空欄が格納される
@@ -150,11 +152,18 @@ class ScoringService(object):
 
                 elif predicted_class == 'Pedestrian':
                     retobjID, ret_tmpped = cls.switch_oldID(Aall_ObjectID_ped_oldpos, AIDvalue_ped, Aframe_num, center_bdboxX, center_bdboxY, left, top, right, bottom)
+                    AIDvalue_ped = retobjID# point
                     Aall_ObjectID_ped_pos.append(ret_tmpped)
+
                     Pedestrian_result = {'id': int(retobjID), 'box2d': [left,top,right,bottom]}#予測結果
 
                     #検出したオブジェクトを格納 検出しない場合は空欄が格納される
                     Pedestrian_result_ALL.append(Pedestrian_result)#歩行者
+
+        #フレームで使用していた最後のIDを覚える
+        cls.IDvalue_car = AIDvalue_car
+        cls.IDvalue_ped = AIDvalue_ped
+
 
         all_result = {'Car': Car_result_ALL, 'Pedestrian': Pedestrian_result_ALL}
         end = timer()
@@ -163,11 +172,11 @@ class ScoringService(object):
 
     @classmethod
     def pw_outdouga(cls, input):
-        cls.IDvalue_car = 0 # Reset Object ID
+        #cls.IDvalue_car = 0 # Reset Object ID
         #IDvalue_car = 0 # Reset Object ID
 
-        cls.all_ObjectID_pos = []
-        cls.all_ObjectID_oldpos = []
+        #cls.all_ObjectID_pos = []
+        #cls.all_ObjectID_oldpos = []
 
         cap = cv2.VideoCapture(input)
         fname = os.path.basename(input)
@@ -373,7 +382,7 @@ class ScoringService(object):
                 old_right  = cls.getValue('right', tmp_old_pos)
                 old_bottom = cls.getValue('bottom', tmp_old_pos)
 
-                band_value     = 15 #Adjust param　検出する範囲を狭める
+                band_value     = 5 #Adjust param　検出する範囲を狭める
                 exp_old_left   = int(old_left   + band_value)
                 exp_old_top    = int(old_top    + band_value)
                 exp_old_right  = int(old_right  - band_value)
