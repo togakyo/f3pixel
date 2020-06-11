@@ -75,7 +75,7 @@ class ScoringService(object):
 
             print(frame.shape)
             print("PROCESSING FRAME = ", Nm_fr)
-            prediction = cls.detect_image(image, Nm_fr, cls.IDvalue_car, cls.IDvalue_ped, cls.all_ObjectID_pos, cls.all_ObjectID_oldpos, cls.all_ObjectID_ped_pos, cls.all_ObjectID_ped_oldpos)
+            prediction, cls.IDvalue_car, cls.IDvalue_ped = cls.detect_image(image, Nm_fr, cls.IDvalue_car, cls.IDvalue_ped, cls.all_ObjectID_pos, cls.all_ObjectID_oldpos, cls.all_ObjectID_ped_pos, cls.all_ObjectID_ped_oldpos)
 
             predictions.append(prediction)
 
@@ -108,10 +108,10 @@ class ScoringService(object):
         if Aframe_num > 1:
             # Car / Pedestrian分ける
             Aall_ObjectID_oldpos = copy.copy(Aall_ObjectID_pos)
-            Aall_ObjectID_pos = []#clear
+            Aall_ObjectID_pos.clear()
 
             Aall_ObjectID_ped_oldpos = copy.copy(Aall_ObjectID_ped_pos)
-            Aall_ObjectID_ped_pos = []#clear
+            Aall_ObjectID_ped_pos.clear()
 
         #オブジェクト単位の処理
         for i, c in reversed(list(enumerate(out_classes))):
@@ -160,15 +160,11 @@ class ScoringService(object):
                     #検出したオブジェクトを格納 検出しない場合は空欄が格納される
                     Pedestrian_result_ALL.append(Pedestrian_result)#歩行者
 
-        #フレームで使用していた最後のIDを覚える
-        cls.IDvalue_car = AIDvalue_car
-        cls.IDvalue_ped = AIDvalue_ped
-
-
         all_result = {'Car': Car_result_ALL, 'Pedestrian': Pedestrian_result_ALL}
         end = timer()
         print("1フレームの処理時間 = ", end - start)
-        return all_result
+        # オブジェクトの検出結果と使用したIDを返す
+        return all_result, AIDvalue_car, AIDvalue_ped
 
     @classmethod
     def pw_outdouga(cls, input):
@@ -205,7 +201,7 @@ class ScoringService(object):
             image = Image.fromarray(im_rgb)
 
             print("PROCESSING FRAME = ", Nm_fr)
-            image = cls.ret_frame(image, Nm_fr, cls.all_ObjectID_pos, cls.all_ObjectID_oldpos, cls.IDvalue_car)
+            image, cls.IDvalue_car = cls.ret_frame(image, Nm_fr, cls.all_ObjectID_pos, cls.all_ObjectID_oldpos, cls.IDvalue_car)
             #image = cls.ret_frame(image, Nm_fr)
             # ここでフレーム毎＝画像イメージ毎に動画をバラしている
 
@@ -247,7 +243,9 @@ class ScoringService(object):
         if frame_num > 1:
             # Car / Pedestrian分ける
             all_ObjectID_oldpos = copy.copy(all_ObjectID_pos)
-            all_ObjectID_pos = []
+            all_ObjectID_pos.clear()
+
+            cls.hit_oldpos.clear()#動画描画用
 
             #all_ObjectID_ped_oldpos = copy.copy(all_ObjectID_ped_pos)
             #all_ObjectID_ped_pos = []
@@ -277,8 +275,6 @@ class ScoringService(object):
                     #3 検出したboxの中心点座標を計算する
                     center_bdboxX = int((right - left)/2) + left
                     center_bdboxY = int((bottom - top)/2) + top
-
-                    cls.hit_oldpos = []
 
                     retobjID, ret_tmpcar = cls.switch_oldID(all_ObjectID_oldpos, IDvalue, frame_num, center_bdboxX, center_bdboxY, left, top, right, bottom)
                     IDvalue = retobjID#
@@ -321,12 +317,11 @@ class ScoringService(object):
                         draw.text(text_origin2, label, fill=(0, 0, 0), font=font)
 
                         del draw
-        #覚える　ID
-        cls.IDvalue_car = IDvalue
 
         end = timer()
         print("1フレームの処理時間 = ", end - start)
-        return image
+        #オブジェクト検出した結果の画像データ、使用したIDを返す
+        return image, IDvalue
 
     @classmethod
     def _get_class(cls, model_path='../src'):
