@@ -144,9 +144,9 @@ def main(yolo, input):
                     if not ptrack.is_confirmed() or ptrack.time_since_update > 1:
                         continue
                     pbbox = ptrack.to_tlbr()
-                    cv2.rectangle(frame, (int(pbbox[0]), int(pbbox[1])), (int(pbbox[2]), int(pbbox[3])), (0, 0, 255), 3)
+                    cv2.rectangle(frame, (int(pbbox[0]), int(pbbox[1])), (int(pbbox[2]), int(pbbox[3])), (255, 0, 0), 3)
                     cv2.putText(frame, "ID: " + str(ptrack.track_id), (int(pbbox[0]), int(pbbox[1])), 0, \
-                                1.5e-3 * frame.shape[0], (0, 255, 0), 3)
+                                1.5e-3 * frame.shape[0], (255, 0, 0), 3)
 
                     #OUTPUT TRACKING
                     ID     = int(ptrack.track_id)
