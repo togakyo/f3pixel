@@ -29,19 +29,19 @@ warnings.filterwarnings('ignore')
 def getValue(cls, key, items):
     values = [x['Value'] for x in items if 'Key' in x and 'Value' in x and x['Key'] == key]
     return values[0] if values else None
-        
+
 def main(yolo, input):
 
     # Definition of the parameters
     max_cosine_distance = 0.3
     nn_budget = None
     nms_max_overlap = 1.0
-    
+
     # Deep SORT
     model_filename = './model_data/mars-small128.pb'
     cencoder = gdet.create_box_encoder(model_filename, batch_size=1)
     pencoder = gdet.create_box_encoder(model_filename, batch_size=1)
-    
+
     cmetric = nn_matching.NearestNeighborDistanceMetric("cosine", max_cosine_distance, nn_budget)
     pmetric = nn_matching.NearestNeighborDistanceMetric("cosine", max_cosine_distance, nn_budget)
     ctracker = Tracker(cmetric)
@@ -64,29 +64,29 @@ def main(yolo, input):
         video_FourCC = int(video_capture.get(cv2.CAP_PROP_FOURCC))
         video_fps = video_capture.get(cv2.CAP_PROP_FPS)
         video_size = (int(video_capture.get(cv2.CAP_PROP_FRAME_WIDTH)), int(video_capture.get(cv2.CAP_PROP_FRAME_HEIGHT)))
-        
+
         out = cv2.VideoWriter(output_path, video_FourCC, video_fps, video_size)
         frame_index = -1
 
     Nm_fr = 0
     all_result = []
-    
+
     while True:
-        
+
         Car_result_ALL = []
         Pedestrian_result_ALL = []
-    
+
         Nm_fr = Nm_fr + 1
-        
+
         ret, frame = video_capture.read()  # frame shape 1920*1216*3
-        
+
         if ret != True:
             break
-        
+
         print("Frame no. = ", Nm_fr)
         t1 = time.time()
         image = Image.fromarray(frame[...,::-1])
-        
+
         cboxes, cconfidence, cclasses = yolo.detect_image(image, cl_list[1])
         pboxes, pconfidence, pclasses = yolo.detect_image(image, cl_list[0])
 
@@ -117,7 +117,7 @@ def main(yolo, input):
                 # Call the tracker
                 ctracker.predict()
                 ctracker.update(cdetections)
-                
+
                 ptracker.predict()
                 ptracker.update(pdetections)
 
@@ -128,18 +128,18 @@ def main(yolo, input):
                     cv2.rectangle(frame, (int(cbbox[0]), int(cbbox[1])), (int(cbbox[2]), int(cbbox[3])), (0, 0, 255), 3)
                     cv2.putText(frame, "ID: " + str(ctrack.track_id), (int(cbbox[0]), int(cbbox[1])), 0, \
                                 1.5e-3 * frame.shape[0], (0, 0, 255), 3)
-                    
+
                     #OUTPUT TRACKING
-                    ID     = int(ctrack.track_id)   
-                    top    = int(cbbox[0]) 
-                    left   = int(cbbox[1]) 
-                    bottom = int(cbbox[2]) 
-                    right  = int(cbbox[3]) 
+                    ID     = int(ctrack.track_id)
+                    top    = int(cbbox[0])
+                    left   = int(cbbox[1])
+                    bottom = int(cbbox[2])
+                    right  = int(cbbox[3])
 
                     Car_result = {'id': ID, 'box2d': [left,top,right,bottom]}#予測結果
                     print("Car_result = ", Car_result)
                     Car_result_ALL.append(Car_result)
-                    
+
                 for ptrack in ptracker.tracks:
                     if not ptrack.is_confirmed() or ptrack.time_since_update > 1:
                         continue
@@ -147,18 +147,18 @@ def main(yolo, input):
                     cv2.rectangle(frame, (int(pbbox[0]), int(pbbox[1])), (int(pbbox[2]), int(pbbox[3])), (0, 0, 255), 3)
                     cv2.putText(frame, "ID: " + str(ptrack.track_id), (int(pbbox[0]), int(pbbox[1])), 0, \
                                 1.5e-3 * frame.shape[0], (0, 255, 0), 3)
-                    
+
                     #OUTPUT TRACKING
-                    ID     = int(ptrack.track_id)   
-                    top    = int(pbbox[0]) 
-                    left   = int(pbbox[1]) 
-                    bottom = int(pbbox[2]) 
-                    right  = int(pbbox[3]) 
+                    ID     = int(ptrack.track_id)
+                    top    = int(pbbox[0])
+                    left   = int(pbbox[1])
+                    bottom = int(pbbox[2])
+                    right  = int(pbbox[3])
 
                     Pedestrian_result = {'id': ID, 'box2d': [left,top,right,bottom]}#予測結果
                     print("Pedestrian_result = ", Pedestrian_result)
                     Pedestrian_result_ALL.append(Pedestrian_result)
-                
+
             #for det in detections:
                 #bbox = det.to_tlbr()
                 #score = "%.2f" % round(det.confidence * 100, 2) + "%"
@@ -167,28 +167,28 @@ def main(yolo, input):
                 #    each_class = det.cls
                 #    cv2.putText(frame, str(each_class) + " " + score, (int(bbox[0]), int(bbox[3])), 0, \
                 #                1.5e-3 * frame.shape[0], (255, 0, 0), 3)
-            
+
             # Each frame result
             all_result.append({'Car': Car_result_ALL, 'Pedestrian': Pedestrian_result_ALL})
-            
+
             if writeVideo_flag:
                 # save a frame
                 out.write(frame)
                 frame_index = frame_index + 1
-            
+
             fps_imutils.update()
 
             fps = (fps + (1./(time.time()-t1))) / 2
             print("     FPS = %f"%(fps))
 
-        if writeVideo_flag:
-            out.release()
+    if writeVideo_flag:
+        out.release()
 
     video_capture.release()
-        
+
     fps_imutils.stop()
     print('imutils FPS: {}'.format(fps_imutils.fps()))
-    
+
     return {input: all_result}
 
 if __name__ == '__main__':
@@ -198,21 +198,21 @@ if __name__ == '__main__':
 
     #読みこむデータのパスを記載
     data_path = './data'
-    
+
     #複数のファイルに対応済み
     videos = sorted(glob.glob(data_path+'/*.mp4'))
-    
+
     for i in range(len(videos)):
         video_path = videos[i]
 
         Output = main(YOLO(), video_path)
         print("Output = ", Output)
-    
+
         if i == 0:#最初はキーを指定して辞書作成
             Output_list = Output
         else:#2個目以降はキーを指定して辞書追加
             Output_list.update(Output)
-    
+
     print("＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊")
     with open('./output/prediction.json', 'w') as f:
         json.dump(Output_list, f)
