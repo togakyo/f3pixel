@@ -21,6 +21,7 @@ import imutils.video
 
 import json
 import glob
+import os
 
 warnings.filterwarnings('ignore')
 
@@ -52,19 +53,13 @@ def main(yolo, input):
     #推論したいカテゴリを設定
     cl_list = ['Pedestrian', 'Car']
 
-    predictions = []
-    
-    #使用しているベースソフトの制約で１クラスのTrackingしかできない
-    Car_result_ALL = []
-    Pedestrian_result_ALL = []
-    all_result = []
-    
     video_capture = cv2.VideoCapture(input)
 
     fps = 0.0
     fps_imutils = imutils.video.FPS().start()
     if writeVideo_flag:
-        fname = cl_list[i] + 'output_yolov4.mp4'
+        basename_without_ext = os.path.splitext(os.path.basename(input))[0]
+        fname = basename_without_ext +'output_yolov4.mp4'
         output_path = './output/'+ fname
         video_FourCC = int(video_capture.get(cv2.CAP_PROP_FOURCC))
         video_fps = video_capture.get(cv2.CAP_PROP_FPS)
@@ -74,7 +69,13 @@ def main(yolo, input):
         frame_index = -1
 
     Nm_fr = 0
+    all_result = []
+    
     while True:
+        
+        Car_result_ALL = []
+        Pedestrian_result_ALL = []
+    
         Nm_fr = Nm_fr + 1
         
         ret, frame = video_capture.read()  # frame shape 1920*1216*3
@@ -82,6 +83,7 @@ def main(yolo, input):
         if ret != True:
             break
         
+        print("Frame no. = ", Nm_fr)
         t1 = time.time()
         image = Image.fromarray(frame[...,::-1])
         
@@ -135,7 +137,6 @@ def main(yolo, input):
                     right  = int(cbbox[3]) 
 
                     Car_result = {'id': ID, 'box2d': [left,top,right,bottom]}#予測結果
-                    print("Frame no. = ", Nm_fr)
                     print("Car_result = ", Car_result)
                     Car_result_ALL.append(Car_result)
                     
@@ -155,11 +156,9 @@ def main(yolo, input):
                     right  = int(pbbox[3]) 
 
                     Pedestrian_result = {'id': ID, 'box2d': [left,top,right,bottom]}#予測結果
-                    print("Frame no. = ", Nm_fr)
                     print("Pedestrian_result = ", Pedestrian_result)
                     Pedestrian_result_ALL.append(Pedestrian_result)
                 
-                                        
             #for det in detections:
                 #bbox = det.to_tlbr()
                 #score = "%.2f" % round(det.confidence * 100, 2) + "%"
