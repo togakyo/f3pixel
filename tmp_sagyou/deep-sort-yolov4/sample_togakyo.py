@@ -8,8 +8,8 @@ import warnings
 import cv2
 import numpy as np
 from PIL import Image
-#from Nyolo import YOLO
-from yolo import YOLO
+from Nyolo import YOLO
+#from yolo import YOLO
 
 from deep_sort import preprocessing
 from deep_sort import nn_matching
@@ -31,6 +31,10 @@ def getValue(cls, key, items):
     return values[0] if values else None
 
 def main(yolo, input):
+
+    #拡張子ありのファイル名
+    basename = os.path.basename(input)
+    print(" START YOLOv4 + DeepSort input file is ", basename)
 
     # Definition of the parameters
     max_cosine_distance = 0.3
@@ -159,14 +163,25 @@ def main(yolo, input):
                     print("Pedestrian_result = ", Pedestrian_result)
                     Pedestrian_result_ALL.append(Pedestrian_result)
 
-            #for det in detections:
-                #bbox = det.to_tlbr()
-                #score = "%.2f" % round(det.confidence * 100, 2) + "%"
-                #cv2.rectangle(frame, (int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])), (255, 0, 0), 10)
-                #if len(classes) > 0:
-                #    each_class = det.cls
-                #    cv2.putText(frame, str(each_class) + " " + score, (int(bbox[0]), int(bbox[3])), 0, \
-                #                1.5e-3 * frame.shape[0], (255, 0, 0), 3)
+            #YOLOv4 output to frame for Car
+            for cdet in cdetections:
+                cbbox = cdet.to_tlbr()
+                cscore = "%.2f" % round(cdet.confidence * 100, 2) + "%"
+                cv2.rectangle(frame, (int(cbbox[0]), int(cbbox[1])), (int(cbbox[2]), int(cbbox[3])), (255, 255, 255), 2)
+                if len(cclasses) > 0:
+                    ceach_class = cdet.cls
+                    cv2.putText(frame, str(ceach_class) + " " + cscore, (int(cbbox[0]), int(cbbox[3])), 0, \
+                                1.5e-3 * frame.shape[0], (255, 255, 255), 2)
+
+            #YOLOv4 output to frame for Pedestrian
+            for pdet in pdetections:
+                pbbox = pdet.to_tlbr()
+                pscore = "%.2f" % round(pdet.confidence * 100, 2) + "%"
+                cv2.rectangle(frame, (int(pbbox[0]), int(pbbox[1])), (int(pbbox[2]), int(pbbox[3])), (127, 127, 127), 2)
+                if len(pclasses) > 0:
+                    peach_class = pdet.cls
+                    cv2.putText(frame, str(peach_class) + " " + pscore, (int(pbbox[0]), int(pbbox[3])), 0, \
+                                1.5e-3 * frame.shape[0], (127, 127, 127), 2)
 
             # Each frame result
             all_result.append({'Car': Car_result_ALL, 'Pedestrian': Pedestrian_result_ALL})
@@ -189,7 +204,7 @@ def main(yolo, input):
     fps_imutils.stop()
     print('imutils FPS: {}'.format(fps_imutils.fps()))
 
-    return {input: all_result}
+    return {basename: all_result}
 
 if __name__ == '__main__':
 
