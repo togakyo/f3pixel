@@ -134,11 +134,11 @@ def main(yolo, input):
                                 1.5e-3 * frame.shape[0], (0, 0, 255), 3)
 
                     #OUTPUT TRACKING
-                    ID     = int(ctrack.track_id)
-                    top    = int(cbbox[0])
-                    left   = int(cbbox[1])
-                    bottom = int(cbbox[2])
-                    right  = int(cbbox[3])
+                    ID      = int(ctrack.track_id)
+                    left    = int(cbbox[0])
+                    top     = int(cbbox[1])
+                    right   = int(cbbox[2])
+                    bottom  = int(cbbox[3])
 
                     Car_result = {'id': ID, 'box2d': [left,top,right,bottom]}#予測結果
                     print("Car_result = ", Car_result)
@@ -153,11 +153,11 @@ def main(yolo, input):
                                 1.5e-3 * frame.shape[0], (255, 0, 0), 3)
 
                     #OUTPUT TRACKING
-                    ID     = int(ptrack.track_id)
-                    top    = int(pbbox[0])
-                    left   = int(pbbox[1])
-                    bottom = int(pbbox[2])
-                    right  = int(pbbox[3])
+                    ID      = int(ptrack.track_id)
+                    left    = int(pbbox[0])
+                    top     = int(pbbox[1])
+                    right   = int(pbbox[2])
+                    bottom  = int(pbbox[3])
 
                     Pedestrian_result = {'id': ID, 'box2d': [left,top,right,bottom]}#予測結果
                     print("Pedestrian_result = ", Pedestrian_result)
