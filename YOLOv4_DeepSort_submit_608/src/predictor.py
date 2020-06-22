@@ -59,8 +59,8 @@ class ScoringService(object):
 
         if cls.writeVideo_flag:
             basename_without_ext = os.path.splitext(os.path.basename(input))[0]
-            fname = basename_without_ext +'output_DPSYv4.mp4'
-            output_path = '../output/'+ fname
+            fmp4name = basename_without_ext +'output_DPSYv4.mp4'
+            output_path = '../output/'+ fmp4name
             video_FourCC = int(cap.get(cv2.CAP_PROP_FOURCC))
             video_fps = cap.get(cv2.CAP_PROP_FPS)
             video_size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
