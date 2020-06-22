@@ -27,14 +27,14 @@ class ScoringService(object):
     def get_model(cls, model_path='../model'):
         #本当は引数でモデルパスを渡したい
         cls.yolo = YOLO()
-        
+
         # Definition of the parameters
         max_cosine_distance = 0.3
         nn_budget = None
         cls.nms_max_overlap = 1.0
 
         # Deep SORT
-        model_filename = '../model_data/mars-small128.pb'
+        model_filename = '../model/mars-small128.pb'
         cls.cencoder = gdet.create_box_encoder(model_filename, batch_size=1)
         cls.pencoder = gdet.create_box_encoder(model_filename, batch_size=1)
 
@@ -47,7 +47,7 @@ class ScoringService(object):
         cls.writeVideo_flag = True
 
         #推論したいカテゴリを設定
-        cls.cl_list = ['Pedestrian', 'Car']
+        cls.cl_list = ['Car', 'Pedestrian']
 
         return True
 
@@ -59,14 +59,14 @@ class ScoringService(object):
         fname = os.path.basename(input)
 
         Nm_fr = 0
-        
+
         fps = 0.0
         fps_imutils = imutils.video.FPS().start()
 
         while True:
             Car_result_ALL = []
             Pedestrian_result_ALL = []
-            
+
             Nm_fr = Nm_fr + 1
 
             ret, frame = cap.read()
@@ -79,12 +79,12 @@ class ScoringService(object):
 
             print(frame.shape)
             print("PROCESSING FRAME = ", Nm_fr)
-            
+
             t1 = time.time()
-            
-            cboxes, cconfidence, cclasses = cls.yolo.detect_image(image, cls.cl_list[1])
-            pboxes, pconfidence, pclasses = cls.yolo.detect_image(image, cls.cl_list[0])
-            
+
+            cboxes, cconfidence, cclasses = cls.yolo.detect_image(image, cls.cl_list[0])
+            pboxes, pconfidence, pclasses = cls.yolo.detect_image(image, cls.cl_list[1])
+
             if cls.tracking:
                 cfeatures = cls.cencoder(frame, cboxes)
                 pfeatures = cls.pencoder(frame, pboxes)
@@ -153,13 +153,13 @@ class ScoringService(object):
 
                 # Each frame result
                 predictions.append({'Car': Car_result_ALL, 'Pedestrian': Pedestrian_result_ALL})
-            
+
             fps_imutils.update()
             fps = (fps + (1./(time.time()-t1))) / 2
             print("     FPS = %f"%(fps))
-            
+
         cap.release()
         fps_imutils.stop()
         print('imutils FPS: {}'.format(fps_imutils.fps()))
-        
+
         return {fname: predictions}

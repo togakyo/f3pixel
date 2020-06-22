@@ -42,7 +42,7 @@ def main(yolo, input):
     nms_max_overlap = 1.0
 
     # Deep SORT
-    model_filename = './model_data/mars-small128.pb'
+    model_filename = '../model/mars-small128.pb'
     cencoder = gdet.create_box_encoder(model_filename, batch_size=1)
     pencoder = gdet.create_box_encoder(model_filename, batch_size=1)
 
@@ -64,7 +64,7 @@ def main(yolo, input):
     if writeVideo_flag:
         basename_without_ext = os.path.splitext(os.path.basename(input))[0]
         fname = basename_without_ext +'output_yolov4.mp4'
-        output_path = './output/'+ fname
+        output_path = '../output/'+ fname
         video_FourCC = int(video_capture.get(cv2.CAP_PROP_FOURCC))
         video_fps = video_capture.get(cv2.CAP_PROP_FPS)
         video_size = (int(video_capture.get(cv2.CAP_PROP_FRAME_WIDTH)), int(video_capture.get(cv2.CAP_PROP_FRAME_HEIGHT)))
@@ -212,7 +212,7 @@ if __name__ == '__main__':
     Output_list = ''
 
     #読みこむデータのパスを記載
-    data_path = './data/train_videos'
+    data_path = '../data'
 
     #複数のファイルに対応済み
     videos = sorted(glob.glob(data_path+'/*.mp4'))
@@ -229,5 +229,5 @@ if __name__ == '__main__':
             Output_list.update(Output)
 
     print("＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊")
-    with open('./output/prediction.json', 'w') as f:
+    with open('../output/prediction.json', 'w') as f:
         json.dump(Output_list, f)
