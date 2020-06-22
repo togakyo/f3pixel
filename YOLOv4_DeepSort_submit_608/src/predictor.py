@@ -13,7 +13,6 @@ from deep_sort.detection import Detection
 from deep_sort.detection_yolo import Detection_YOLO
 from deep_sort.tracker import Tracker
 from tools import generate_detections as gdet
-import imutils.video
 
 import json
 import glob
@@ -58,12 +57,23 @@ class ScoringService(object):
         cap = cv2.VideoCapture(input)
         fname = os.path.basename(input)
 
-        Nm_fr = 0
+        if cls.writeVideo_flag:
+            basename_without_ext = os.path.splitext(os.path.basename(input))[0]
+            fname = basename_without_ext +'output_DPSYv4.mp4'
+            output_path = '../output/'+ fname
+            video_FourCC = int(cap.get(cv2.CAP_PROP_FOURCC))
+            video_fps = cap.get(cv2.CAP_PROP_FPS)
+            video_size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+            out = cv2.VideoWriter(output_path, video_FourCC, video_fps, video_size)
 
-        fps = 0.0
-        fps_imutils = imutils.video.FPS().start()
+        Nm_fr = 0
+        #FPS 計算用
+        FPS = 0
+        tmpfrtime = 0
 
         while True:
+            t1 = time.time()
+
             Car_result_ALL = []
             Pedestrian_result_ALL = []
 
@@ -79,8 +89,6 @@ class ScoringService(object):
 
             print(frame.shape)
             print("PROCESSING FRAME = ", Nm_fr)
-
-            t1 = time.time()
 
             cboxes, cconfidence, cclasses = cls.yolo.detect_image(image, cls.cl_list[0])
             pboxes, pconfidence, pclasses = cls.yolo.detect_image(image, cls.cl_list[1])
@@ -154,12 +162,24 @@ class ScoringService(object):
                 # Each frame result
                 predictions.append({'Car': Car_result_ALL, 'Pedestrian': Pedestrian_result_ALL})
 
-            fps_imutils.update()
-            fps = (fps + (1./(time.time()-t1))) / 2
-            print("     FPS = %f"%(fps))
+                # save a frame
+                if cls.writeVideo_flag:
+                    out.write(frame)
+            #End time
+            t2 = time.time()
+            frtime = t2 - t1
+            print("Sec/Frame = ", frtime)
+            tmpfrtime = tmpfrtime + frtime
+            if tmpfrtime > 1:
+                print("FPS = ", FPS)
+                tmpfrtime = 0
+                FPS = 0
+            else:
+                FPS = FPS + 1
 
+
+        if cls.writeVideo_flag:
+            out.release()
         cap.release()
-        fps_imutils.stop()
-        print('imutils FPS: {}'.format(fps_imutils.fps()))
 
         return {fname: predictions}
