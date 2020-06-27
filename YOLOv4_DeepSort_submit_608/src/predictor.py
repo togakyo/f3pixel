@@ -5,7 +5,8 @@ import warnings
 import cv2
 import numpy as np
 from PIL import Image
-from Nyolo import YOLO
+from cyolo import CYOLO
+from pyolo import PYOLO
 
 from deep_sort import preprocessing
 from deep_sort import nn_matching
@@ -25,20 +26,25 @@ class ScoringService(object):
     @classmethod
     def get_model(cls, model_path='../model'):
         #本当は引数でモデルパスを渡したい
-        cls.yolo = YOLO()
+        cls.cyolo = CYOLO()
+        cls.pyolo = PYOLO()
 
-        # Definition of the parameters
-        max_cosine_distance = 0.3
-        nn_budget = None
-        cls.nms_max_overlap = 1.0
+        # Definition of the parameters for Car
+        Cmax_cosine_distance = 0.3 # Param
+        Cnn_budget = None # Param
+        cls.Cnms_max_overlap = 1.0 # Param
+        # Definition of the parameters for Pedestrian
+        Pmax_cosine_distance = 0.3 # Param
+        Pnn_budget = None # Param
+        cls.Pnms_max_overlap = 1.0 # Param
 
         # Deep SORT
         model_filename = '../model/mars-small128.pb'
         cls.cencoder = gdet.create_box_encoder(model_filename, batch_size=1)
         cls.pencoder = gdet.create_box_encoder(model_filename, batch_size=1)
 
-        cmetric = nn_matching.NearestNeighborDistanceMetric("cosine", max_cosine_distance, nn_budget)
-        pmetric = nn_matching.NearestNeighborDistanceMetric("cosine", max_cosine_distance, nn_budget)
+        cmetric = nn_matching.NearestNeighborDistanceMetric("euclidean", Cmax_cosine_distance, Cnn_budget) # Param
+        pmetric = nn_matching.NearestNeighborDistanceMetric("cosine", Pmax_cosine_distance, Pnn_budget) # Param
         cls.ctracker = Tracker(cmetric)
         cls.ptracker = Tracker(pmetric)
 
@@ -83,15 +89,24 @@ class ScoringService(object):
 
             if not ret:
                 break
-
+            
+            #  Normal input 
             im_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            #  Equalize histgram of the value of each pixel
+            #img_yuv = cv2.cvtColor(frame, cv2.COLOR_BGR2YUV)
+            # equalize the histogram of the Y channel
+            #img_yuv[:,:,0] = cv2.equalizeHist(img_yuv[:,:,0])
+            # convert the YUV image back to RGB format
+            #img_output = cv2.cvtColor(img_yuv, cv2.COLOR_YUV2RGB)
+
             image = Image.fromarray(im_rgb)
+            #image = Image.fromarray(img_output)
 
             print(frame.shape)
             print("PROCESSING FRAME = ", Nm_fr)
 
-            cboxes, cconfidence, cclasses = cls.yolo.detect_image(image, cls.cl_list[0])
-            pboxes, pconfidence, pclasses = cls.yolo.detect_image(image, cls.cl_list[1])
+            cboxes, cconfidence, cclasses = cls.cyolo.detect_image(image, cls.cl_list[0])
+            pboxes, pconfidence, pclasses = cls.pyolo.detect_image(image, cls.cl_list[1])
 
             if cls.tracking:
                 cfeatures = cls.cencoder(frame, cboxes)
@@ -105,12 +120,12 @@ class ScoringService(object):
                 # Run non-maxima suppression.
                 cboxes = np.array([d.tlwh for d in cdetections])
                 cscores = np.array([d.confidence for d in cdetections])
-                cindices = preprocessing.non_max_suppression(cboxes, cls.nms_max_overlap, cscores)
+                cindices = preprocessing.non_max_suppression(cboxes, cls.Cnms_max_overlap, cscores)
                 cdetections = [cdetections[i] for i in cindices]
 
                 pboxes = np.array([d.tlwh for d in pdetections])
                 pscores = np.array([d.confidence for d in pdetections])
-                pindices = preprocessing.non_max_suppression(pboxes, cls.nms_max_overlap, pscores)
+                pindices = preprocessing.non_max_suppression(pboxes, cls.Pnms_max_overlap, pscores)
                 pdetections = [pdetections[i] for i in pindices]
 
                 if cls.tracking:
