@@ -18,12 +18,12 @@ from keras.utils import multi_gpu_model
 
 class PYOLO(object):
     def __init__(self):
-        self.model_path = '../model/Nyolo-obj_last_score03_iou0213.h5'
-        self.anchors_path = '../model/Nyolo-obj_last_score03_iou0213_anch.txt'
-        self.classes_path = '../model/Ncoco_classes.txt'
+        self.model_path = '../model/yolo-obj_pedestrian_2class_3800.h5'
+        self.anchors_path = '../model/pyolo_anchors.txt'
+        self.classes_path = '../model/pyolo_class.txt'
         self.gpu_num = 1
-        self.score = 0.5 # Param
-        self.iou = 0.5 # Param
+        self.score = 0.4 # Param
+        self.iou = 0.4 # Param
         self.class_names = self._get_class()
         self.anchors = self._get_anchors()
         self.sess = tf.compat.v1.keras.backend.get_session()

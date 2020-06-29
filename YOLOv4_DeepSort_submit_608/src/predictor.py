@@ -30,21 +30,21 @@ class ScoringService(object):
         cls.pyolo = PYOLO()
 
         # Definition of the parameters for Car
-        Cmax_cosine_distance = 0.3 # Param
-        Cnn_budget = None # Param
-        cls.Cnms_max_overlap = 1.0 # Param
+        Cmax_cosine_distance = 0.3
+        Cnn_budget = None
+        cls.Cnms_max_overlap = 1.0
         # Definition of the parameters for Pedestrian
-        Pmax_cosine_distance = 0.3 # Param
-        Pnn_budget = None # Param
-        cls.Pnms_max_overlap = 1.0 # Param
+        Pmax_cosine_distance = 0.3
+        Pnn_budget = None
+        cls.Pnms_max_overlap = 0.8
 
         # Deep SORT
         model_filename = '../model/mars-small128.pb'
         cls.cencoder = gdet.create_box_encoder(model_filename, batch_size=1)
         cls.pencoder = gdet.create_box_encoder(model_filename, batch_size=1)
 
-        cmetric = nn_matching.NearestNeighborDistanceMetric("euclidean", Cmax_cosine_distance, Cnn_budget) # Param
-        pmetric = nn_matching.NearestNeighborDistanceMetric("cosine", Pmax_cosine_distance, Pnn_budget) # Param
+        cmetric = nn_matching.NearestNeighborDistanceMetric("cosine", Cmax_cosine_distance, Cnn_budget)
+        pmetric = nn_matching.NearestNeighborDistanceMetric("cosine", Pmax_cosine_distance, Pnn_budget)
         cls.ctracker = Tracker(cmetric)
         cls.ptracker = Tracker(pmetric)
 
@@ -85,14 +85,16 @@ class ScoringService(object):
 
             Nm_fr = Nm_fr + 1
 
+            if cls.writeVideo_flag:
+                Car_ID_inc = 0
+                Ped_ID_inc = 0
+
             ret, frame = cap.read()
 
             if not ret:
                 break
-            
-            #  Normal input 
+
             im_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            #  Equalize histgram of the value of each pixel
             #img_yuv = cv2.cvtColor(frame, cv2.COLOR_BGR2YUV)
             # equalize the histogram of the Y channel
             #img_yuv[:,:,0] = cv2.equalizeHist(img_yuv[:,:,0])
@@ -100,13 +102,17 @@ class ScoringService(object):
             #img_output = cv2.cvtColor(img_yuv, cv2.COLOR_YUV2RGB)
 
             image = Image.fromarray(im_rgb)
-            #image = Image.fromarray(img_output)
 
             print(frame.shape)
             print("PROCESSING FRAME = ", Nm_fr)
 
             cboxes, cconfidence, cclasses = cls.cyolo.detect_image(image, cls.cl_list[0])
             pboxes, pconfidence, pclasses = cls.pyolo.detect_image(image, cls.cl_list[1])
+            print("＊＊＊＊＊＊＊＊＊＊ Pedestrian Start ＊＊＊＊＊＊＊＊＊＊")
+            print("Result pboxes= ", pboxes)
+            print("Result pconfidence= ", pconfidence)
+            print("Result pclasses= ", pclasses)
+            print("＊＊＊＊＊＊＊＊＊＊ Pedestrian End ＊＊＊＊＊＊＊＊＊＊")
 
             if cls.tracking:
                 cfeatures = cls.cencoder(frame, cboxes)
@@ -124,6 +130,11 @@ class ScoringService(object):
                 cdetections = [cdetections[i] for i in cindices]
 
                 pboxes = np.array([d.tlwh for d in pdetections])
+                #pboxes[:, 0]
+                #pboxes[:, 1]
+                #pboxes[:, 2] = pboxes[:, 2]*0.5
+                #pboxes[:, 3] = pboxes[:, 3]*
+
                 pscores = np.array([d.confidence for d in pdetections])
                 pindices = preprocessing.non_max_suppression(pboxes, cls.Pnms_max_overlap, pscores)
                 pdetections = [pdetections[i] for i in pindices]
@@ -159,11 +170,24 @@ class ScoringService(object):
                         if not ptrack.is_confirmed() or ptrack.time_since_update > 1:
                             continue
                         pbbox = ptrack.to_tlbr()
+
+                        #widthaband_label = 6# before 8, 10
+                        #heightaband_label = 14# before 16, 18
+
+                        #cv2.rectangle(frame, (int(pbbox[0]+ ((pbbox[2] - pbbox[0])/widthaband_label)), \
+                        #                                 int(pbbox[1] + ((pbbox[3] - pbbox[1])/heightaband_label))), \
+                        #                                (int(pbbox[2]- ((pbbox[2] - pbbox[0]) /widthaband_label)), \
+                        #                                int(pbbox[3]- ((pbbox[3] - pbbox[1])/heightaband_label))), (255, 0, 0), 3)
                         cv2.rectangle(frame, (int(pbbox[0]), int(pbbox[1])), (int(pbbox[2]), int(pbbox[3])), (255, 0, 0), 3)
                         cv2.putText(frame, "ID: " + str(ptrack.track_id), (int(pbbox[0]), int(pbbox[1])), 0, \
                                     1.5e-3 * frame.shape[0], (255, 0, 0), 3)
 
                         #OUTPUT TRACKING
+                        #ID      = int(ptrack.track_id)
+                        #left    = int(pbbox[0] + ((pbbox[2] - pbbox[0])/widthaband_label))
+                        #top     = int(pbbox[1] + ((pbbox[3] - pbbox[1])/heightaband_label))
+                        #right   = int(pbbox[2] - ((pbbox[2] - pbbox[0]) /widthaband_label))
+                        #bottom  = int(pbbox[3] - ((pbbox[3] - pbbox[1])/heightaband_label))
                         ID      = int(ptrack.track_id)
                         left    = int(pbbox[0])
                         top     = int(pbbox[1])
@@ -174,12 +198,12 @@ class ScoringService(object):
                         print("Pedestrian_result = ", Pedestrian_result)
                         Pedestrian_result_ALL.append(Pedestrian_result)
 
-                # Each frame result
-                predictions.append({'Car': Car_result_ALL, 'Pedestrian': Pedestrian_result_ALL})
+                    # Each frame result
+                    predictions.append({'Car': Car_result_ALL, 'Pedestrian': Pedestrian_result_ALL})
 
-                # save a frame
-                if cls.writeVideo_flag:
-                    out.write(frame)
+                    # save a frame
+                    if cls.writeVideo_flag:
+                        out.write(frame)
             #End time
             t2 = time.time()
             frtime = t2 - t1
@@ -191,7 +215,6 @@ class ScoringService(object):
                 FPS = 0
             else:
                 FPS = FPS + 1
-
 
         if cls.writeVideo_flag:
             out.release()
