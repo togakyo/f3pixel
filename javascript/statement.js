@@ -5,9 +5,13 @@ var plays = '{"hamlet":{"name": "Hamlet", "type": "tragedy"},"as-like":{"name": 
 var jsonObject_invoices = JSON.parse(invoices);　　　//HACK: invoices JSON読み込みを想定
 var jsonObject_plays = JSON.parse(plays);　　　      //HACK: plays JSON読み込みを想定
 
+
+function playFor(aPerformance){
+    return plays[aPerformance]
+}
+
 function amountFor (aPerformance, play){
     let result = 0;
-
 
     switch (play.type){
         case "tragedy":
@@ -39,8 +43,7 @@ function statement (invoices, plays){
                            { style: "currency", currency: "USD", 
                              minimumIntegerDigits: 2 }).format;
     for (let perf of invoices.performances) {
-        const play = plays[perf.playID];
-
+        const play = playFor(perf.playID);
 
         let thisAmount = amountFor (perf, play);
 
