@@ -7,7 +7,7 @@ var jsonObject_plays = JSON.parse(plays);　　　      //HACK: plays JSON読み
 
 function amountFor (perf, play){
     let result = 0;
-    
+
 
     switch (play.type){
         case "tragedy":
@@ -40,6 +40,7 @@ function statement (invoices, plays){
                              minimumIntegerDigits: 2 }).format;
     for (let perf of invoices.performances) {
         const play = plays[perf.playID];
+        
 
         let thisAmount = amountFor (perf, play);
 
