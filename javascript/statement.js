@@ -5,54 +5,52 @@ var plays = '{"hamlet":{"name": "Hamlet", "type": "tragedy"},"as-like":{"name": 
 var jsonObject_invoices = JSON.parse(invoices);　　　//HACK: invoices JSON読み込みを想定
 var jsonObject_plays = JSON.parse(plays);　　　      //HACK: plays JSON読み込みを想定
 
-
-function playFor(aPerformance){
-    return plays[aPerformance]
-}
-
-function amountFor (aPerformance, play){
-    let result = 0;
-
-    switch (play.type){
-        case "tragedy":
-            result = 40000;
-            if(aPerformance.audience > 30){
-                result += 1000 * (aPerformance.audience -30);
-            }
-            break;
-        case "comedy":
-            result = 30000;
-            if(aPerformance.audience > 20){
-                result += 10000 + 500 * (aPerformance.audience -20);
-            }
-            result += 300 * aPerformance.audience;
-            break;
-        default:
-            throw new Error("unknown type:" + play.type + "\n");
-    }
-
-    return result;
-}
-
 function statement (invoices, plays){
+    
     let totalAmount = 0;
     let volumeCredits = 0;
     let result =  " Statement for "+ invoices.customer + "\n"; //'Statement for ${invoices.customer}¥n';
 
-    const format = new Intl.NumberFormat("en-US",
-                           { style: "currency", currency: "USD", 
-                             minimumIntegerDigits: 2 }).format;
-    for (let perf of invoices.performances) {
-        const play = playFor(perf.playID);
+    const format = new Intl.NumberFormat("en-US",{ style: "currency", currency: "USD", minimumIntegerDigits: 2 }).format;
+    
+    function playFor(aPerformance){
+        return plays[aPerformance.playID];
+    }
 
-        let thisAmount = amountFor (perf, play);
+    for (let perf of invoices.performances) {
+    
+        let thisAmount = amountFor (perf, playFor(perf));
+
+        function amountFor (aPerformance, play){
+            let result = 0;
+        
+            switch (playFor(aPerformance).type){
+                case "tragedy":
+                    result = 40000;
+                    if(aPerformance.audience > 30){
+                        result += 1000 * (aPerformance.audience -30);
+                    }
+                    break;
+                case "comedy":
+                    result = 30000;
+                    if(aPerformance.audience > 20){
+                        result += 10000 + 500 * (aPerformance.audience -20);
+                    }
+                    result += 300 * aPerformance.audience;
+                    break;
+                default:
+                    throw new Error("unknown type:" + playFor(aPerformance).type + "\n");
+            }
+        
+            return result;
+        }
 
         //
         volumeCredits += Math.max(perf.audience - 30, 0);
         //
-        if("comedy" === play.type) volumeCredits += Math.floor(perf.audience / 5);
+        if("comedy" === playFor(perf).type) volumeCredits += Math.floor(perf.audience / 5);
         //
-        result += "   "+play.name+":" + format(thisAmount/100) + " " + (perf.audience) + " " + "seats\n";
+        result += "   "+playFor(perf).name+":" + format(thisAmount/100) + " " + (perf.audience) + " " + "seats\n";
         totalAmount += thisAmount;
     }
 
