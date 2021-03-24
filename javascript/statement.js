@@ -19,9 +19,9 @@ function statement (invoices, plays){
 
     for (let perf of invoices.performances) {
     
-        let thisAmount = amountFor (perf, playFor(perf));
+        let thisAmount = amountFor (perf);
 
-        function amountFor (aPerformance, play){
+        function amountFor (aPerformance){
             let result = 0;
         
             switch (playFor(aPerformance).type){
