@@ -7,6 +7,7 @@ var jsonObject_plays = JSON.parse(plays);　　　      //HACK: plays JSON読み
 
 function amountFor (perf, play){
     let result = 0;
+    
 
     switch (play.type){
         case "tragedy":
