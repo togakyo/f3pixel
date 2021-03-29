@@ -11,8 +11,6 @@ function statement (invoices, plays){
     let volumeCredits = 0;
     let result =  " Statement for "+ invoices.customer + "\n"; //'Statement for ${invoices.customer}¥n';
 
-    const format = new Intl.NumberFormat("en-US",{ style: "currency", currency: "USD", minimumIntegerDigits: 2 }).format;
-    
     function playFor(aPerformance){
         return plays[aPerformance.playID];
     }
@@ -23,6 +21,11 @@ function statement (invoices, plays){
         if ("comedy" === playFor(ePerformance).type) result += Math.floor(ePerformance.audience / 5) ; 
         return result;
     }
+
+    function format(eNumber){
+        return new Intl.NumberFormat("en-US",{ style: "currency", currency: "USD", minimumIntegerDigits: 2 }).format(eNumber);
+    }
+    
     for (let perf of invoices.performances) {
     
         function amountFor (aPerformance){
