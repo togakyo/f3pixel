@@ -22,8 +22,8 @@ function statement (invoices, plays){
         return result;
     }
 
-    function format(eNumber){
-        return new Intl.NumberFormat("en-US",{ style: "currency", currency: "USD", minimumIntegerDigits: 2 }).format(eNumber);
+    function usd(eNumber){
+        return new Intl.NumberFormat("en-US",{ style: "currency", currency: "USD", minimumIntegerDigits: 2 }).format(eNumber/100);
     }
     
     for (let perf of invoices.performances) {
@@ -55,11 +55,11 @@ function statement (invoices, plays){
         //
         volumeCredits += volumeCreditsFor(perf);
         //
-        result += "   "+playFor(perf).name+":" + format(amountFor (perf)/100) + " " + (perf.audience) + " " + "seats\n";
+        result += "   "+playFor(perf).name+":" + usd(amountFor (perf)) + " " + (perf.audience) + " " + "seats\n";
         totalAmount += amountFor (perf);
     }
 
-    result += " Amount owed is " + format(totalAmount/100) + "\n";
+    result += " Amount owed is " + usd(totalAmount) + "\n";
     result += " You earned " + volumeCredits + " " +  "credits\n";
     return result ;
 }
