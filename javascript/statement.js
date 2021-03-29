@@ -8,9 +8,32 @@ var jsonObject_plays = JSON.parse(plays);　　　      //HACK: plays JSON読み
 function statement (invoices, plays){
     
     let result =  " Statement for "+ invoices.customer + "\n"; //'Statement for ${invoices.customer}¥n';
+    for (let perf of invoices.performances){
+        result += "  "+ playFor(perf).name+ ": " + usd(amountFor(perf)) + " " + perf.audience + "seats" + "\n" ;
+    }
 
-    function playFor(aPerformance){
-        return plays[aPerformance.playID];
+    result += " Amount owed is " + usd(totalAmount()) + "\n";
+    result += " You earned " + totalVolumeCredits() + " " +  "credits\n";
+    return result ;
+
+    function totalAmount(){
+        let result = 0;
+        for (let perf of invoices.performances) {
+            result += amountFor (perf);
+        }
+        return result;
+    }
+
+    function totalVolumeCredits(){
+        let result = 0 ;
+        for (let perf of invoices.performances) {
+            result += volumeCreditsFor(perf);
+        }
+        return result;
+    }
+
+    function usd(eNumber){
+        return new Intl.NumberFormat("en-US",{ style: "currency", currency: "USD", minimumIntegerDigits: 2 }).format(eNumber/100);
     }
 
     function volumeCreditsFor(ePerformance){
@@ -20,9 +43,10 @@ function statement (invoices, plays){
         return result;
     }
 
-    function usd(eNumber){
-        return new Intl.NumberFormat("en-US",{ style: "currency", currency: "USD", minimumIntegerDigits: 2 }).format(eNumber/100);
+    function playFor(aPerformance){
+        return plays[aPerformance.playID];
     }
+
     function amountFor(aPerformance){
         let result = 0;
     
@@ -46,31 +70,6 @@ function statement (invoices, plays){
     
         return result;
     }
-
-    function totalVolumeCredits(){
-        let volumeCredits = 0 ;
-        for (let perf of invoices.performances) {
-            volumeCredits += volumeCreditsFor(perf);
-        }
-
-        return volumeCredits;
-    }
-
-    function appleSauce(){
-        let totalAmount = 0;
-
-        for (let perf of invoices.performances) {
-            result += "   "+playFor(perf).name+":" + usd(amountFor (perf)) + " " + (perf.audience) + " " + "seats\n";
-            totalAmount += amountFor (perf);
-        }
-        return totalAmount;
-    }
-
-    let totalAmount = appleSauce();
-
-    result += " Amount owed is " + usd(totalAmount) + "\n";
-    result += " You earned " + totalVolumeCredits() + " " +  "credits\n";
-    return result ;
 }
 
 
