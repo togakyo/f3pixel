@@ -8,7 +8,6 @@ var jsonObject_plays = JSON.parse(plays);　　　      //HACK: plays JSON読み
 function statement (invoices, plays){
     
     let totalAmount = 0;
-    let volumeCredits = 0;
     let result =  " Statement for "+ invoices.customer + "\n"; //'Statement for ${invoices.customer}¥n';
 
     function playFor(aPerformance){
@@ -53,6 +52,8 @@ function statement (invoices, plays){
         result += "   "+playFor(perf).name+":" + usd(amountFor (perf)) + " " + (perf.audience) + " " + "seats\n";
         totalAmount += amountFor (perf);
     }
+
+    let volumeCredits = 0;
     for (let perf of invoices.performances) {
         volumeCredits += volumeCreditsFor(perf);
     }
