@@ -6,12 +6,16 @@ var jsonObject_invoices = JSON.parse(invoices);　　　//HACK: invoices JSON読
 var jsonObject_plays = JSON.parse(plays);　　　      //HACK: plays JSON読み込みを想定
 
 function statement (invoices, plays){
-    const statementData = {} ;
-    statementData.customer = invoices.customer;
-    statementData.performances = invoices.performances.map(enrichPerformance);
-    statementData.totalAmount = totalAmount(statementData);
-    statementData.totalVolumeCredits = totalVolumeCredits(statementData);
-    return renderPlainText(statementData, plays)
+    return renderPlainText(createStatementData(invoices, plays));
+
+    function createStatementData(invoices, plays){
+        const statementData = {} ;
+        statementData.customer = invoices.customer;
+        statementData.performances = invoices.performances.map(enrichPerformance);
+        statementData.totalAmount = totalAmount(statementData);
+        statementData.totalVolumeCredits = totalVolumeCredits(statementData);
+        return statementData;    
+    }
 
     function enrichPerformance(aPerformance){
         const result = Object.assign({}, aPerformance);
