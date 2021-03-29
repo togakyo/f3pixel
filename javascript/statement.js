@@ -7,7 +7,6 @@ var jsonObject_plays = JSON.parse(plays);　　　      //HACK: plays JSON読み
 
 function statement (invoices, plays){
     
-    let totalAmount = 0;
     let result =  " Statement for "+ invoices.customer + "\n"; //'Statement for ${invoices.customer}¥n';
 
     function playFor(aPerformance){
@@ -53,13 +52,21 @@ function statement (invoices, plays){
         for (let perf of invoices.performances) {
             volumeCredits += volumeCreditsFor(perf);
         }
+
+        return volumeCredits;
     }
 
+    function appleSauce(){
+        let totalAmount = 0;
 
-    for (let perf of invoices.performances) {
-        result += "   "+playFor(perf).name+":" + usd(amountFor (perf)) + " " + (perf.audience) + " " + "seats\n";
-        totalAmount += amountFor (perf);
+        for (let perf of invoices.performances) {
+            result += "   "+playFor(perf).name+":" + usd(amountFor (perf)) + " " + (perf.audience) + " " + "seats\n";
+            totalAmount += amountFor (perf);
+        }
+        return totalAmount;
     }
+
+    let totalAmount = appleSauce();
 
     result += " Amount owed is " + usd(totalAmount) + "\n";
     result += " You earned " + totalVolumeCredits() + " " +  "credits\n";
