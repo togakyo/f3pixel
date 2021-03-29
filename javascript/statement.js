@@ -17,6 +17,12 @@ function statement (invoices, plays){
         return plays[aPerformance.playID];
     }
 
+    function volumeCreditsFor(perf){
+        let volumeCredits = 0;
+        volumeCredits += Math.max(perf.audience - 30, 0) ;
+        if ("comedy" === playFor(perf).type) volumeCredits += Math.floor(perf.audience / 5) ; 
+        return volumeCredits;
+    }
     for (let perf of invoices.performances) {
     
         function amountFor (aPerformance){
@@ -44,9 +50,7 @@ function statement (invoices, plays){
         }
 
         //
-        volumeCredits += Math.max(perf.audience - 30, 0);
-        //
-        if("comedy" === playFor(perf).type) volumeCredits += Math.floor(perf.audience / 5);
+        volumeCredits += volumeCreditsFor(perf);
         //
         result += "   "+playFor(perf).name+":" + format(amountFor (perf)/100) + " " + (perf.audience) + " " + "seats\n";
         totalAmount += amountFor (perf);
