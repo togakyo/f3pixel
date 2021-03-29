@@ -61,9 +61,8 @@ function statement (invoices, plays){
         totalAmount += amountFor (perf);
     }
 
-    let volumeCredits = totalVolumeCredits();
     result += " Amount owed is " + usd(totalAmount) + "\n";
-    result += " You earned " + volumeCredits + " " +  "credits\n";
+    result += " You earned " + totalVolumeCredits() + " " +  "credits\n";
     return result ;
 }
 
