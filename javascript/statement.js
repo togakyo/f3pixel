@@ -50,11 +50,11 @@ function statement (invoices, plays){
     }
 
     for (let perf of invoices.performances) {
-        //
-        volumeCredits += volumeCreditsFor(perf);
-        //
         result += "   "+playFor(perf).name+":" + usd(amountFor (perf)) + " " + (perf.audience) + " " + "seats\n";
         totalAmount += amountFor (perf);
+    }
+    for (let perf of invoices.performances) {
+        volumeCredits += volumeCreditsFor(perf);
     }
 
     result += " Amount owed is " + usd(totalAmount) + "\n";
