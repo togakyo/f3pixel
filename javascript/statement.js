@@ -17,11 +17,11 @@ function statement (invoices, plays){
         return plays[aPerformance.playID];
     }
 
-    function volumeCreditsFor(perf){
-        let volumeCredits = 0;
-        volumeCredits += Math.max(perf.audience - 30, 0) ;
-        if ("comedy" === playFor(perf).type) volumeCredits += Math.floor(perf.audience / 5) ; 
-        return volumeCredits;
+    function volumeCreditsFor(ePerformance){
+        let result = 0;
+        result += Math.max(ePerformance.audience - 30, 0) ;
+        if ("comedy" === playFor(ePerformance).type) result += Math.floor(ePerformance.audience / 5) ; 
+        return result;
     }
     for (let perf of invoices.performances) {
     
