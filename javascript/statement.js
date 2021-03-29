@@ -19,8 +19,6 @@ function statement (invoices, plays){
 
     for (let perf of invoices.performances) {
     
-        let thisAmount = amountFor (perf);
-
         function amountFor (aPerformance){
             let result = 0;
         
@@ -50,8 +48,8 @@ function statement (invoices, plays){
         //
         if("comedy" === playFor(perf).type) volumeCredits += Math.floor(perf.audience / 5);
         //
-        result += "   "+playFor(perf).name+":" + format(thisAmount/100) + " " + (perf.audience) + " " + "seats\n";
-        totalAmount += thisAmount;
+        result += "   "+playFor(perf).name+":" + format(amountFor (perf)/100) + " " + (perf.audience) + " " + "seats\n";
+        totalAmount += amountFor (perf);
     }
 
     result += " Amount owed is " + format(totalAmount/100) + "\n";
