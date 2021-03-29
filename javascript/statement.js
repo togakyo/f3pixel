@@ -8,8 +8,13 @@ var jsonObject_plays = JSON.parse(plays);　　　      //HACK: plays JSON読み
 function statement (invoices, plays){
     const statementData = {} ;
     statementData.customer = invoices.customer;
-    statementData.performances = invoices.performances;
+    statementData.performances = invoices.performances.map(enrichPerformance);
     return renderPlainText(statementData, plays)
+
+    function enrichPerformance(aPerformance){
+        const result = Object.assign({}, aPerformance);
+        return result;
+    }
 }
 function renderPlainText(data, plays){
     let result =  " Statement for "+ data.customer + "\n"; //'Statement for ${invoices.customer}¥n';
