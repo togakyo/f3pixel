@@ -1,5 +1,3 @@
-//import { statement } from "statement";
-
 export default function createStatementData(invoices, plays){
     const statementData = {} ;
     statementData.customer = invoices.customer;
