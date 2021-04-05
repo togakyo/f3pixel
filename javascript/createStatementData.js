@@ -66,5 +66,3 @@ export default function createStatementData(invoices, plays){
         return result;
     }
 }
-
-//export default {createStatementData}
