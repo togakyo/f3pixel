@@ -1,10 +1,16 @@
+class PerformanceCalculator {
+    constructor(ePerformance) {
+        this.performance = aPerformance;
+    }
+}
 export default function createStatementData(invoices, plays){
-    const statementData = {} ;
+    const calculator = new PerformanceCalculator(ePerformance);
+    const result = {} ;
     statementData.customer = invoices.customer;
     statementData.performances = invoices.performances.map(enrichPerformance);
-    statementData.totalAmount = totalAmount(statementData);
-    statementData.totalVolumeCredits = totalVolumeCredits(statementData);
-    return statementData;
+    statementData.totalAmount = totalAmount(result);
+    statementData.totalVolumeCredits = totalVolumeCredits(result);
+    return result;
     
     function enrichPerformance(aPerformance){
         const result = Object.assign({}, aPerformance);
@@ -50,17 +56,9 @@ export default function createStatementData(invoices, plays){
     }
 
     function totalAmount(data){
-        let result = 0;
-        for (let perf of data.performances) {
-            result += perf.amount;
-        }
-        return result;
+        return data.performances.reduce((toral, p) => total + p.amount, 0);
     }
     function totalVolumeCredits(data){
-        let result = 0 ;
-        for (let perf of data.performances) {
-            result += perf.volumeCredits;
-        }
-        return result;
+        return data.performances.reduce((total, p) => total + p.volumeCredits, 0);
     }
 }
