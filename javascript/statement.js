@@ -1,7 +1,7 @@
 //DEBUG_方法 Served を立ち上げる
 
-var invoices = '{"customer": "BigCo","performances": [{"playID": "hamlet","audience": 55},{"playID": "as-like","audience": 35},{"playID": "othello","audience": 40}]}';
-var plays = '{"hamlet":{"name": "Hamlet", "type": "tragedy"},"as-like":{"name": "As You Like It", "type": "comedy"},"othello": {"name": "Othello", "type": "tragedy"}}';
+var invoices = '{"customer": "BigCo","performances": [{"playID": "Eva","audience": 500},{"playID": "hamlet","audience": 55},{"playID": "as-like","audience": 35},{"playID": "othello","audience": 40}]}';
+var plays = '{"hamlet":{"name": "Hamlet", "type": "tragedy"},"as-like":{"name": "As You Like It", "type": "comedy"},"othello": {"name": "Othello", "type": "tragedy"}, "Eva":{"name": "Evangel", "type": "Japanese_tragedy"}}';
 
 var jsonObject_invoices = JSON.parse(invoices);　　　//HACK: invoices JSON読み込みを想定
 var jsonObject_plays = JSON.parse(plays);　　　      //HACK: plays JSON読み込みを想定
@@ -46,6 +46,6 @@ function usd(eNumber){
 
 let test = statement(jsonObject_invoices, jsonObject_plays);
 let test_html = htmlStatement(jsonObject_invoices, jsonObject_plays);
-document.getElementById("box").innerHTML = test_html ;//
+document.getElementById("box").innerHTML = test_html ;
 console.log(test);
 
