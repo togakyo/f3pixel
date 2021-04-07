@@ -15,12 +15,14 @@
 //App.java
 package test;
  
-public class App {
-    public boolean login(String user, String pass){
-        if ("user".equals(user) && "pass".equals(pass)){
-            return true;
-        } else {
-            return false;
-        }
+class Dollar {
+    int amount;
+    Dollar(int amount)
+    {
+
+    }
+    void times(int multiplier)
+    {
+
     }
 }
