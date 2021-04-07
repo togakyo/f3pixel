@@ -1,15 +1,13 @@
-var invoices = '{"customer": "BigCo","performances": [{"playID": "hamlet","audience": 55},{"playID": "as-like","audience": 35},{"playID": "othello","audience": 40}]}';
-var plays = '{"hamlet":{"name": "Hamlet", "type": "tragedy"},"as-like":{"name": "As You Like It", "type": "comedy"},"othello": {"name": "Othello", "type": "tragedy"}}';
+//DEBUG_方法 Served を立ち上げる
+
+var invoices = '{"customer": "BigCo","performances": [{"playID": "Eva","audience": 500},{"playID": "hamlet","audience": 55},{"playID": "as-like","audience": 35},{"playID": "othello","audience": 40}]}';
+var plays = '{"hamlet":{"name": "Hamlet", "type": "tragedy"},"as-like":{"name": "As You Like It", "type": "comedy"},"othello": {"name": "Othello", "type": "tragedy"}, "Eva":{"name": "Evangel", "type": "Japanese_tragedy"}}';
 
 var jsonObject_invoices = JSON.parse(invoices);　　　//HACK: invoices JSON読み込みを想定
 var jsonObject_plays = JSON.parse(plays);　　　      //HACK: plays JSON読み込みを想定
 
-//Served を立ち上げる
 import createStatementData from "./createStatementData.js";
 
-function usd(eNumber){
-    return new Intl.NumberFormat("en-US",{ style: "currency", currency: "USD", minimumIntegerDigits: 2 }).format(eNumber/100);
-}
 function statement (invoices, plays){
     return renderPlainText(createStatementData(invoices, plays));
 }
@@ -25,6 +23,10 @@ function renderPlainText(data, plays){
     return result ;
 }
 
+function htmlStatement(invoices, plays) {
+    return renderHtml(createStatementData(invoices, plays))
+}
+
 function renderHtml (data){
     let result = `<h1>Statement for ${data.customer}</h1>\n`; 
     result += "<table>\n";
@@ -38,24 +40,12 @@ function renderHtml (data){
     return result ;
 }
 
-function htmlStatement(invoices, plays) {
-    return renderHtml(createStatementData(invoices, plays))
+function usd(eNumber){
+    return new Intl.NumberFormat("en-US",{ style: "currency", currency: "USD", minimumIntegerDigits: 2 }).format(eNumber/100);
 }
-
-//function usd(eNumber){
-//    return new Intl.NumberFormat("en-US",{ style: "currency", currency: "USD", minimumIntegerDigits: 2 }).format(eNumber/100);
-//}
-
 
 let test = statement(jsonObject_invoices, jsonObject_plays);
 let test_html = htmlStatement(jsonObject_invoices, jsonObject_plays);
-document.getElementById("box").innerHTML = test_html ;//
+document.getElementById("box").innerHTML = test_html ;
 console.log(test);
-
-//invoices = '/Users/togashikyousuke/Desktop/f3pixel/javascript/invoices.json';
-//plays = '/Users/togashikyousuke/Desktop/f3pixel/javascript/plays.json';
-
-//console.log(jsonObject_invoices.performances);
-//console.log(jsonObject_plays.hamlet.name);
-//console.log('Hello, World')
 
