@@ -15,8 +15,7 @@
 //App.java
 package test;
  
-class Dollar {
-    private int amount;
+class Dollar extends Money{
     Dollar(int amount)
     {
         this.amount = amount;
