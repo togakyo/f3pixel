@@ -15,9 +15,11 @@
 //App.java
 package test;
  
-abstract class Money {
+//abstract class Money {
+class Money {
     protected int amount;
-    abstract Money times(int multiplier);
+    //abstract Money times(int multiplier);
+    Money times(int multiplier);
     public boolean equals(Object object)
     {
         Money money = (Money) object;
