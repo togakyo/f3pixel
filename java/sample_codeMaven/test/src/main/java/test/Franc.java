@@ -1,27 +1,12 @@
-//package test;
-
-/**
- * Hello world!
- *
- */
-//public class App 
-//{
-//    public static void main( String[] args )
-//    {
-//        System.out.println( "Hello World!" );
-//    }
-//}
-
-//App.java
 package test;
  
 class Franc extends Money{
-    Franc(int amount)
+    Franc(int amount, String currency)
     {
-        this.amount = amount;
+        super(amount, currency);
     }
     Money times(int multiplier)
     {
-        return new Franc(amount * multiplier);
+        return Mpney.franc(amount * multiplier);
     }
 }

@@ -1,27 +1,13 @@
-//package test;
-
-/**
- * Hello world!
- *
- */
-//public class App 
-//{
-//    public static void main( String[] args )
-//    {
-//        System.out.println( "Hello World!" );
-//    }
-//}
-
-//App.java
 package test;
  
-class Dollar extends Money{
-    Dollar(int amount)
+class Dollar extends Money
+{
+    Dollar(int amount, String currency)
     {
-        this.amount = amount;
+        super(amount, currency);
     }
     Money times(int multiplier)
     {
-        return new Dollar(amount * multiplier);
+        return Money.dollar(amount * multiplier, null);
     }
 }
